@@ -1,0 +1,323 @@
+"use client";
+
+import { useState } from "react";
+import { 
+  CheckCircle2, 
+  Key, 
+  MessageSquare, 
+  Activity, 
+  Image as ImageIcon,
+  Bitcoin,
+  Merge,
+  XOctagon,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  ShieldCheck
+} from "lucide-react";
+import ReactFlow, { Background, MarkerType } from "reactflow";
+import "reactflow/dist/style.css";
+
+const MOCK_ALIAS_A = {
+  name: "ShadowPharm",
+  market: "Hydra Market",
+  pgp: "F9B2 4A32 1109 E77A",
+  joinDate: "2023-11-04",
+  description: "Premium grade pharmaceuticals. Stealth packaging guaranteed. Reship policy applies to tracked orders only.",
+  contact: "Tox: 593A1B2C...",
+};
+
+const MOCK_ALIAS_B = {
+  name: "BlueSkyDistro",
+  market: "AlphaBay Reborn",
+  pgp: "F9B2 4A32 1109 E77A", // Match
+  joinDate: "2025-01-12",
+  description: "Top tier pharms. Stealth packaging guaranteed. Reship policy applies to tracked orders only. No refunds.",
+  contact: "Tox: 593A1B2C...", // Match
+};
+
+const miniGraphNodes = [
+  { id: "A", position: { x: 30, y: 30 }, data: { label: "ShadowPharm" }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
+  { id: "B", position: { x: 30, y: 130 }, data: { label: "BlueSkyDistro" }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
+  { id: "C", position: { x: 180, y: 80 }, data: { label: "bc1q9h...x4k2\n$48,200" }, style: { background: "#10b981", color: "#070a10", border: "none", borderRadius: "8px", fontSize: "9px", fontWeight: "bold", width: 100 } },
+];
+
+const miniGraphEdges = [
+  { id: "e1", source: "A", target: "C", animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" }, style: { stroke: "#10b981" } },
+  { id: "e2", source: "B", target: "C", animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" }, style: { stroke: "#10b981" } },
+];
+
+export default function EntityResolution() {
+  const [matchStatus, setMatchStatus] = useState<"pending" | "merged" | "rejected">("pending");
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto bg-[#070a10] text-slate-200 custom-scrollbar">
+      
+      {/* 1. Candidate Triage Bar (Top) */}
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-[#1e293b] bg-[#070a10]/95 px-6 py-3 backdrop-blur-md shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 border border-[#1e293b] rounded-md bg-[#0d131f] px-2 py-1">
+             <button className="p-1 hover:text-white text-slate-400 transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+             <span className="text-xs font-bold text-white uppercase tracking-wider">Reviewing Candidate 3 of 14</span>
+             <button className="p-1 hover:text-white text-slate-400 transition-colors"><ChevronRight className="h-4 w-4" /></button>
+          </div>
+          <div className="flex items-center gap-2 border border-[#1e293b] rounded-md bg-[#0d131f] px-3 py-1.5 cursor-pointer hover:bg-[#1e293b] transition-colors">
+            <Filter className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-xs font-medium text-slate-300">Confidence: &gt;90%</span>
+          </div>
+        </div>
+        
+        {matchStatus === "pending" ? (
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setMatchStatus("rejected")}
+              className="flex items-center gap-2 rounded-md border border-[#ff5572] bg-transparent px-4 py-1.5 text-xs font-bold text-[#ff5572] uppercase tracking-wider transition-all hover:bg-[#ff5572]/10"
+            >
+              <XOctagon className="h-4 w-4" />
+              Flag False Positive
+            </button>
+            <button 
+              onClick={() => setMatchStatus("merged")}
+              className="flex items-center gap-2 rounded-md bg-[#10b981] px-4 py-1.5 text-xs font-bold text-[#070a10] uppercase tracking-wider shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all hover:bg-emerald-400"
+            >
+              <Merge className="h-4 w-4" />
+              Confirm Match & Merge Personas
+            </button>
+          </div>
+        ) : (
+          <div className={`flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-bold uppercase tracking-wider ${matchStatus === 'merged' ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30' : 'bg-[#ff5572]/20 text-[#ff5572] border border-[#ff5572]/30'}`}>
+            {matchStatus === 'merged' ? <CheckCircle2 className="h-4 w-4" /> : <XOctagon className="h-4 w-4" />}
+            {matchStatus === 'merged' ? 'Personas Merged' : 'Flagged as False Positive'}
+          </div>
+        )}
+      </div>
+
+      <div className="p-6 max-w-7xl mx-auto w-full">
+        {/* 2. Suspect Header & Match Gauge */}
+        <div className="relative flex items-stretch gap-6 mb-4">
+          {/* Alias A */}
+          <div className="flex-1 rounded-xl border border-[#1e293b] bg-[#0d131f] p-5 shadow-lg">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <span className="rounded bg-[#1e293b] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#a855f7]">Alias A</span>
+              <span className="text-[10px] uppercase tracking-widest text-slate-500">Active: {MOCK_ALIAS_A.joinDate}</span>
+            </div>
+            <h2 className="text-2xl font-black text-white truncate" title={MOCK_ALIAS_A.name}>{MOCK_ALIAS_A.name}</h2>
+            <p className="text-sm font-bold text-[#00ffff] mt-1">{MOCK_ALIAS_A.market}</p>
+          </div>
+
+          {/* Central Gauge & Expanded Score */}
+          <div className="w-[300px] shrink-0 flex flex-col items-center justify-center rounded-xl border border-[#1e293b] bg-[#0d131f] p-4 shadow-lg">
+            <div className="flex items-center gap-4 w-full">
+              {/* Circular Gauge */}
+              <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-[#070a10] shadow-[0_0_20px_rgba(16,185,129,0.1)] ring-2 ring-[#1e293b]">
+                <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="stroke-[#1e293b]"
+                    strokeWidth="3"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="stroke-[#10b981] drop-shadow-md transition-all duration-1000"
+                    strokeWidth="3"
+                    strokeDasharray="96, 100"
+                    fill="none"
+                    strokeLinecap="round"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="flex flex-col items-center">
+                  <span className="text-lg font-black text-[#10b981]">96%</span>
+                </div>
+              </div>
+              
+              {/* Score Breakdown */}
+              <div className="flex-1 space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-slate-400">Crypto</span>
+                  <span className="text-[#10b981]">100%</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-slate-400">PGP</span>
+                  <span className="text-[#10b981]">100%</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-slate-400">Vision</span>
+                  <span className="text-[#10b981]">94%</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-slate-400">NLP</span>
+                  <span className="text-emerald-400">89%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Alias B */}
+          <div className="flex-1 rounded-xl border border-[#1e293b] bg-[#0d131f] p-5 shadow-lg">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <span className="rounded bg-[#1e293b] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#a855f7]">Alias B</span>
+              <span className="text-[10px] uppercase tracking-widest text-slate-500">Active: {MOCK_ALIAS_B.joinDate}</span>
+            </div>
+            <h2 className="text-2xl font-black text-white truncate" title={MOCK_ALIAS_B.name}>{MOCK_ALIAS_B.name}</h2>
+            <p className="text-sm font-bold text-[#00ffff] mt-1">{MOCK_ALIAS_B.market}</p>
+          </div>
+        </div>
+
+        {/* 3. Temporal Bridge Banner */}
+        <div className="mb-6 flex items-center justify-center gap-3 rounded-lg border border-[#a855f7]/30 bg-[#a855f7]/10 px-4 py-2 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+          <Activity className="h-4 w-4 text-[#a855f7]" />
+          <span className="text-xs font-bold text-[#a855f7] uppercase tracking-widest">
+            Temporal Correlation: 48-Hour Migration Window detected between Hydra exit and AlphaBay listing creation.
+          </span>
+        </div>
+
+        {/* 4. Enhanced 5-Vector Verification Matrix */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">5-Vector Verification Matrix</h3>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Automated Proofs</span>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4 pb-8">
+          
+          {/* Card 1: Crypto Proof (PGP) */}
+          <div className="col-span-1 flex flex-col rounded-xl border border-[#1e293b] bg-[#0d131f] p-4 shadow-lg transition-all hover:border-slate-600">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key className="h-4 w-4 text-[#00ffff]" />
+                <span className="text-xs font-bold uppercase tracking-widest text-white">Cryptographic Proof</span>
+              </div>
+              <CheckCircle2 className="h-4 w-4 text-[#10b981]" />
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+               <span className="px-1.5 py-0.5 rounded bg-[#1e293b] text-[9px] font-bold text-[#00ffff] border border-[#00ffff]/20">RSA 4096-bit</span>
+               <span className="px-1.5 py-0.5 rounded bg-[#1e293b] text-[9px] font-bold text-slate-300">Key ID: 0xF9B24A32</span>
+            </div>
+            <div className="space-y-3 flex-1 flex flex-col justify-end">
+              <div>
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Alias A PGP</span>
+                <p className="font-mono text-[10px] sm:text-xs text-slate-300 bg-[#070a10] p-2 rounded border border-[#1e293b] truncate mt-1">{MOCK_ALIAS_A.pgp}</p>
+              </div>
+              <div>
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Alias B PGP</span>
+                <p className="font-mono text-[10px] sm:text-xs text-[#10b981] bg-[#10b981]/10 p-2 rounded border border-[#10b981]/30 truncate mt-1">{MOCK_ALIAS_B.pgp}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Comms Identifiers */}
+          <div className="col-span-1 flex flex-col rounded-xl border border-[#1e293b] bg-[#0d131f] p-4 shadow-lg transition-all hover:border-slate-600">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-[#00ffff]" />
+                <span className="text-xs font-bold uppercase tracking-widest text-white">Comms Identifiers</span>
+              </div>
+              <CheckCircle2 className="h-4 w-4 text-[#10b981]" />
+            </div>
+            <div className="flex-1 flex flex-col gap-2 justify-center">
+              <div className="flex items-center justify-between bg-[#10b981]/10 border border-[#10b981]/30 rounded p-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Tox ID</span>
+                <span className="font-mono text-xs font-bold text-[#10b981]">593A1B2C...</span>
+              </div>
+              <div className="flex items-center justify-between bg-[#070a10] border border-[#1e293b] rounded p-2 opacity-50">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Session ID</span>
+                <span className="font-mono text-[10px] text-slate-500">None</span>
+              </div>
+              <div className="flex items-center justify-between bg-[#070a10] border border-[#1e293b] rounded p-2 opacity-50">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Jabber/XMPP</span>
+                <span className="font-mono text-[10px] text-slate-500">None</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Financial Flow (Mini-Graph) */}
+          <div className="col-span-1 row-span-2 rounded-xl border border-[#1e293b] bg-[#0d131f] p-4 flex flex-col shadow-lg transition-all hover:border-slate-600">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bitcoin className="h-4 w-4 text-[#00ffff]" />
+                <span className="text-xs font-bold uppercase tracking-widest text-white">Financial Flow</span>
+              </div>
+              <CheckCircle2 className="h-4 w-4 text-[#10b981]" />
+            </div>
+            <p className="mb-3 text-[10px] font-medium text-slate-400 leading-relaxed">
+              Crypto streams from both aliases converge into wallet <span className="font-mono text-[#00ffff]">bc1q9h...x4k2</span> with combined deposits of <span className="text-[#10b981] font-bold">$48,200</span>.
+            </p>
+            <div className="relative flex-1 rounded border border-[#1e293b] bg-[#070a10] overflow-hidden min-h-[250px]">
+              <ReactFlow 
+                nodes={miniGraphNodes} 
+                edges={miniGraphEdges} 
+                fitView 
+                proOptions={{ hideAttribution: true }}
+                nodesDraggable={false}
+                zoomOnScroll={false}
+                panOnDrag={false}
+              >
+                <Background color="#1e293b" gap={16} size={1} />
+              </ReactFlow>
+            </div>
+          </div>
+
+          {/* Card 3: Stylometric NLP */}
+          <div className="col-span-1 rounded-xl border border-[#1e293b] bg-[#0d131f] p-4 shadow-lg transition-all hover:border-slate-600">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-[#00ffff]" />
+                <span className="text-xs font-bold uppercase tracking-widest text-white">Stylometric NLP Diff</span>
+              </div>
+              <span className="text-[10px] font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">89%</span>
+            </div>
+            <div className="flex flex-col gap-3 flex-1 justify-center">
+              <div className="rounded border border-[#1e293b] bg-[#070a10] p-3">
+                <span className="mb-2 block text-[9px] font-bold uppercase tracking-widest text-slate-500">Alias A Description</span>
+                <div className="text-[11px] leading-relaxed text-slate-400">
+                  Premium grade pharmaceuticals. <span className="bg-[#10b981]/20 text-[#10b981] font-medium px-1 rounded">Stealth packaging guaranteed. Reship policy</span> applies to tracked orders only.
+                </div>
+              </div>
+              <div className="rounded border border-[#1e293b] bg-[#070a10] p-3">
+                <span className="mb-2 block text-[9px] font-bold uppercase tracking-widest text-slate-500">Alias B Description</span>
+                <div className="text-[11px] leading-relaxed text-slate-400">
+                  Top tier pharms. <span className="bg-[#10b981]/20 text-[#10b981] font-medium px-1 rounded">Stealth packaging guaranteed. Reship policy</span> applies to tracked orders only. No refunds.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Visual Computer Vision */}
+          <div className="col-span-1 rounded-xl border border-[#1e293b] bg-[#0d131f] p-4 shadow-lg transition-all hover:border-slate-600">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-[#00ffff]" />
+                <span className="text-xs font-bold uppercase tracking-widest text-white">Visual Computer Vision</span>
+              </div>
+              <span className="text-[10px] font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">94%</span>
+            </div>
+            <p className="mb-3 text-[10px] font-medium text-slate-400 leading-relaxed">
+              Detected identical digital scale and background grain.
+            </p>
+            <div className="flex gap-3 h-32 mt-auto">
+              {/* Mock Image A */}
+              <div className="relative flex-1 overflow-hidden rounded border border-[#1e293b] bg-[#070a10]">
+                <div className="absolute inset-0 flex items-center justify-center text-[#1e293b]">
+                   <ImageIcon className="h-8 w-8 opacity-50" />
+                </div>
+                {/* AI Bounding Box */}
+                <div className="absolute left-2 top-2 h-14 w-14 border border-[#00ffff] bg-[#00ffff]/10 shadow-[0_0_10px_rgba(0,255,255,0.2)]" />
+                <span className="absolute bottom-1 right-1 text-[8px] font-bold tracking-wider uppercase text-slate-500 bg-[#0d131f]/90 px-1.5 py-0.5 rounded border border-[#1e293b]">Listing A</span>
+              </div>
+              {/* Mock Image B */}
+              <div className="relative flex-1 overflow-hidden rounded border border-[#1e293b] bg-[#070a10]">
+                 <div className="absolute inset-0 flex items-center justify-center text-[#1e293b]">
+                   <ImageIcon className="h-8 w-8 opacity-50" />
+                </div>
+                {/* AI Bounding Box Match */}
+                <div className="absolute left-6 top-4 h-14 w-14 border border-[#00ffff] bg-[#00ffff]/10 shadow-[0_0_10px_rgba(0,255,255,0.2)]" />
+                <span className="absolute bottom-1 right-1 text-[8px] font-bold tracking-wider uppercase text-slate-500 bg-[#0d131f]/90 px-1.5 py-0.5 rounded border border-[#1e293b]">Listing B</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
