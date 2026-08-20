@@ -5,17 +5,17 @@ import { ArrowLeft, Search, Eye, Clock, ChevronRight, Filter, ShieldAlert } from
 import { useAppStore } from "@/lib/store";
 
 const STATUS_COLORS: Record<string, string> = {
-  Open: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
+  Open: "text-primary bg-cyan-400/10 border-cyan-400/30",
   "Preparing Brief": "text-amber-400 bg-amber-400/10 border-amber-400/30",
   "Arrest Warrant": "text-red-400 bg-red-400/10 border-red-400/30",
-  Closed: "text-slate-500 bg-slate-500/10 border-slate-500/30",
+  Closed: "text-muted-foreground bg-slate-500/10 border-slate-500/30",
 };
 
 const RISK_COLORS: Record<string, string> = {
   Critical: "text-red-400 bg-red-500/15 border-red-500/30",
   High: "text-orange-400 bg-orange-500/15 border-orange-500/30",
   Medium: "text-yellow-400 bg-yellow-500/15 border-yellow-500/30",
-  Low: "text-cyan-400 bg-cyan-500/15 border-cyan-500/30",
+  Low: "text-primary bg-cyan-500/15 border-primary/30",
 };
 
 const investigationsData = [
@@ -53,34 +53,34 @@ export default function ReportInvestigations() {
   });
 
   return (
-    <div className="flex flex-col h-full bg-[#070a10] text-slate-200 overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Breadcrumb */}
-      <div className="shrink-0 border-b border-zinc-800 bg-[#0d131f] px-6 py-4">
-        <button onClick={() => setActiveView("dashboard")} className="flex items-center gap-2 text-xs text-slate-500 hover:text-cyan-400 transition-colors mb-3">
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+        <button onClick={() => setActiveView("dashboard")} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors mb-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Operations Dashboard
         </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <Eye className="h-5 w-5 text-cyan-400" /> Active Investigations
+              <Eye className="h-5 w-5 text-primary" /> Active Investigations
             </h1>
-            <p className="text-xs text-slate-500 mt-1">Case management data table • {investigationsData.length} total cases</p>
+            <p className="text-xs text-muted-foreground mt-1">Case management data table • {investigationsData.length} total cases</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search cases..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-[#070a10] border border-zinc-800 rounded-lg py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-colors"
+                className="w-64 bg-background border border-border rounded-lg py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-primary transition-colors"
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <Filter className="h-3.5 w-3.5 text-slate-500" />
+              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               {["All", "Open", "Preparing Brief", "Arrest Warrant", "Closed"].map((s) => (
-                <button key={s} onClick={() => setStatusFilter(s)} className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-md border transition-all ${statusFilter === s ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400" : "border-zinc-800 text-slate-500 hover:text-slate-300"}`}>
+                <button key={s} onClick={() => setStatusFilter(s)} className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-md border transition-all ${statusFilter === s ? "border-primary/50 bg-cyan-500/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
                   {s}
                 </button>
               ))}
@@ -92,7 +92,7 @@ export default function ReportInvestigations() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full">
-          <thead className="sticky top-0 z-10 bg-[#0d131f] border-b border-zinc-800">
+          <thead className="sticky top-0 z-10 bg-card border-b border-border">
             <tr className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
               <th className="px-6 py-3 text-left">Case ID</th>
               <th className="px-4 py-3 text-left">Primary Target</th>
@@ -105,18 +105,18 @@ export default function ReportInvestigations() {
           </thead>
           <tbody>
             {filtered.map((inv) => (
-              <tr key={inv.caseId} onClick={() => openDossier(inv.target)} className="border-b border-zinc-800/50 cursor-pointer transition-colors hover:bg-slate-800/30 group">
-                <td className="px-6 py-4 font-mono text-xs text-cyan-400">{inv.caseId}</td>
+              <tr key={inv.caseId} onClick={() => openDossier(inv.target)} className="border-b border-border/50 cursor-pointer transition-colors hover:bg-slate-800/30 group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                <td className="px-6 py-4 font-mono text-xs text-primary">{inv.caseId}</td>
                 <td className="px-4 py-4 text-sm font-bold text-white">{inv.target}</td>
-                <td className="px-4 py-4 text-xs text-slate-400">{inv.agent}</td>
+                <td className="px-4 py-4 text-xs text-muted-foreground">{inv.agent}</td>
                 <td className="px-4 py-4 text-center">
                   <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${RISK_COLORS[inv.risk]}`}>{inv.risk}</span>
                 </td>
                 <td className="px-4 py-4 text-center">
                   <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${STATUS_COLORS[inv.status]}`}>{inv.status}</span>
                 </td>
-                <td className="px-4 py-4 text-right text-[11px] text-slate-500 flex items-center justify-end gap-1"><Clock className="h-3 w-3" />{inv.updated}</td>
-                <td className="px-6 py-4 text-right"><ChevronRight className="h-4 w-4 text-slate-700 group-hover:text-cyan-400 transition-colors" /></td>
+                <td className="px-4 py-4 text-right text-[11px] text-muted-foreground flex items-center justify-end gap-1"><Clock className="h-3 w-3" />{inv.updated}</td>
+                <td className="px-6 py-4 text-right focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"><ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-primary transition-colors" /></td>
               </tr>
             ))}
           </tbody>

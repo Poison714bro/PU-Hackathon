@@ -61,10 +61,10 @@ export default function ReportListings() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#070a10] text-slate-200 overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Breadcrumb & Actions */}
-      <div className="shrink-0 border-b border-zinc-800 bg-[#0d131f] px-6 py-4">
-        <button onClick={() => setActiveView("dashboard")} className="flex items-center gap-2 text-xs text-slate-500 hover:text-cyan-400 transition-colors mb-3">
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+        <button onClick={() => setActiveView("dashboard")} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors mb-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Operations Dashboard
         </button>
         <div className="flex items-center justify-between">
@@ -72,18 +72,18 @@ export default function ReportListings() {
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-red-400" /> Suspicious Listings Feed
             </h1>
-            <p className="text-xs text-slate-500 mt-1">Darknet marketplace scraper • {listingsData.length} flagged listings</p>
+            <p className="text-xs text-muted-foreground mt-1">Darknet marketplace scraper • {listingsData.length} flagged listings</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input type="text" placeholder="Search vendors, listings..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-[#070a10] border border-zinc-800 rounded-lg py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-red-500 transition-colors" />
+                className="w-64 bg-background border border-border rounded-lg py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-red-500 transition-colors" />
             </div>
-            <button className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs text-slate-400 hover:bg-zinc-800 hover:text-white transition-colors">
+            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-zinc-900/50 px-3 py-2 text-xs text-muted-foreground hover:bg-zinc-800 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
               <Download className="h-3.5 w-3.5" /> Export CSV
             </button>
-            <button disabled={selected.size === 0} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40">
+            <button disabled={selected.size === 0} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
               <PlusCircle className="h-3.5 w-3.5" /> Add {selected.size > 0 ? `(${selected.size})` : ""} to Investigation
             </button>
           </div>
@@ -93,7 +93,7 @@ export default function ReportListings() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full">
-          <thead className="sticky top-0 z-10 bg-[#0d131f] border-b border-zinc-800">
+          <thead className="sticky top-0 z-10 bg-card border-b border-border">
             <tr className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
               <th className="px-4 py-3 text-center w-10"></th>
               <th className="px-4 py-3 text-left">Vendor</th>
@@ -107,7 +107,7 @@ export default function ReportListings() {
           </thead>
           <tbody>
             {filtered.map((l) => (
-              <tr key={l.id} className="border-b border-zinc-800/50 transition-colors hover:bg-slate-800/30 group">
+              <tr key={l.id} className="border-b border-border/50 transition-colors hover:bg-slate-800/30 group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                 <td className="px-4 py-3 text-center">
                   <button onClick={() => toggleSelect(l.id)} className={`h-4 w-4 rounded border transition-colors ${selected.has(l.id) ? "bg-red-500 border-red-500" : "border-zinc-700 hover:border-red-500/50"}`}>
                     {selected.has(l.id) && <CheckSquare className="h-4 w-4 text-white" />}
@@ -119,7 +119,7 @@ export default function ReportListings() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-8 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[l.category] || "#666" }} />
-                    <span className="text-xs text-slate-300 line-clamp-1">{l.title}</span>
+                    <span className="text-xs text-foreground line-clamp-1">{l.title}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-xs text-emerald-400">${l.priceUSD.toLocaleString()}</td>
@@ -130,7 +130,7 @@ export default function ReportListings() {
                 <td className="px-4 py-3">
                   <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 line-clamp-1">{l.flag}</span>
                 </td>
-                <td className="px-4 py-3 text-right text-[11px] text-slate-500">{l.scraped}</td>
+                <td className="px-4 py-3 text-right text-[11px] text-muted-foreground">{l.scraped}</td>
               </tr>
             ))}
           </tbody>

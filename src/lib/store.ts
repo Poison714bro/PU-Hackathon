@@ -9,7 +9,21 @@ export interface FilterState {
   contactMethods: Set<string>;
 }
 
+export type ClearanceLevel = 1 | 2 | 3;
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  clearanceLevel: ClearanceLevel;
+  role: "Agent" | "Analyst" | "Admin";
+}
+
 export interface AppState {
+  // Auth state
+  isAuthenticated: boolean;
+  currentUser: User | null;
+
   // Selected entity (cross-view sync)
   selectedEntityId: string | null;
   selectedEntityType: "pin" | "node" | null;
@@ -27,6 +41,8 @@ export interface AppState {
   filters: FilterState;
 
   // Actions
+  login: (user: User) => void;
+  logout: () => void;
   selectEntity: (id: string, type: "pin" | "node", linkedIds?: string[]) => void;
   clearSelection: () => void;
   setActiveView: (view: AppState["activeView"]) => void;
@@ -68,6 +84,8 @@ const defaultFilters: FilterState = {
 };
 
 export const useAppStore = create<AppState>((set) => ({
+  isAuthenticated: false,
+  currentUser: null,
   selectedEntityId: null,
   selectedEntityType: null,
   activeEntityId: null,
@@ -75,6 +93,9 @@ export const useAppStore = create<AppState>((set) => ({
   activeView: "dashboard",
   searchQuery: "",
   filters: { ...defaultFilters },
+
+  login: (user) => set({ isAuthenticated: true, currentUser: user }),
+  logout: () => set({ isAuthenticated: false, currentUser: null, activeView: "dashboard" }),
 
   selectEntity: (id, type, linkedIds = []) =>
     set({

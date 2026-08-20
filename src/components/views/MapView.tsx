@@ -17,6 +17,8 @@ import Supercluster from "supercluster";
 import { useDebounce } from "use-debounce";
 import { mapPinsData, type MapPin } from "@/lib/mockData";
 import { getDrugColor } from "@/lib/utils";
+
+
 import { useAppStore } from "@/lib/store";
 import EvidenceDrawer from "@/components/ui/EvidenceDrawer";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -332,7 +334,7 @@ export default function MapView() {
       <div className="flex flex-1 flex-col relative">
         {/* Top-Left Search (Google Maps style) */}
         <div className="absolute top-4 left-4 z-[5] flex items-center gap-2 rounded-lg bg-white px-4 py-3 shadow-lg ring-1 ring-slate-900/5 transition-all">
-          <Search className="h-5 w-5 text-slate-400" />
+          <Search className="h-5 w-5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search locations, routes..."
@@ -348,7 +350,7 @@ export default function MapView() {
             <DeckGL
               layers={layers}
               initialViewState={viewState}
-              onViewStateChange={(e: any) => setViewState(e.viewState)}
+              onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
               getCursor={({ isDragging }: { isDragging: boolean }) => (isDragging ? 'grabbing' : 'grab')}
             >
@@ -376,13 +378,13 @@ export default function MapView() {
               {/* High-performance DeckGL tooltip */}
               {hoverInfo && hoverInfo.object && (
                 <div
-                  className="pointer-events-none absolute z-50 rounded-lg bg-white p-3 text-sm shadow-xl ring-1 ring-slate-900/10"
+                  className="pointer-events-none absolute z-40 rounded-lg bg-white p-3 text-sm shadow-xl ring-1 ring-slate-900/10"
                   style={{ left: hoverInfo.x + 15, top: hoverInfo.y + 15 }}
                 >
                   {hoverInfo.object.properties.cluster ? (
                     <div>
                       <strong>Cluster</strong>
-                      <div className="text-slate-500">
+                      <div className="text-muted-foreground">
                         {hoverInfo.object.properties.point_count} evidence points
                       </div>
                     </div>
@@ -393,7 +395,7 @@ export default function MapView() {
                         <span className="h-2 w-2 rounded-full" style={{ background: getDrugColor(hoverInfo.object.properties.drugCategory) }} />
                         {hoverInfo.object.properties.drugCategory}
                       </div>
-                      <div className="text-slate-500 mt-1 text-xs">
+                      <div className="text-muted-foreground mt-1 text-xs">
                         Risk Score: {hoverInfo.object.properties.riskScore}
                       </div>
                     </div>
@@ -405,7 +407,7 @@ export default function MapView() {
         </div>
 
         {/* Timeline / Calendar Panel (Light Glassmorphism Bottom Center) */}
-        <div className="absolute bottom-6 left-1/2 z-[5] -translate-x-1/2 rounded-2xl bg-white/80 p-4 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl transition-all hover:bg-white/95">
+        <div className="absolute bottom-6 left-1/2 z-[5] -translate-x-1/2 rounded-2xl bg-white/80 p-4 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl transition-all hover:bg-white/95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <div className="w-[600px]">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -417,7 +419,7 @@ export default function MapView() {
                   className={`ml-2 flex h-7 w-7 items-center justify-center rounded-full border transition-all ${
                     isPlaying
                       ? "border-blue-500/50 bg-blue-50 text-blue-600 shadow-inner"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-blue-500/30 hover:text-blue-500 shadow-sm"
+                      : "border-slate-200 bg-white text-muted-foreground hover:border-blue-500/30 hover:text-blue-500 shadow-sm"
                   }`}
                 >
                   {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
@@ -427,7 +429,7 @@ export default function MapView() {
                 <span className="rounded-lg bg-slate-100 px-3 py-1 font-mono text-[11px] font-medium text-slate-600">
                   {dateRange[0]}
                 </span>
-                <span className="text-[10px] font-medium text-slate-400">to</span>
+                <span className="text-[10px] font-medium text-muted-foreground">to</span>
                 <span className="rounded-lg bg-slate-100 px-3 py-1 font-mono text-[11px] font-medium text-slate-600">
                   {dateRange[1]}
                 </span>
@@ -467,7 +469,7 @@ export default function MapView() {
             </div>
 
             {/* Date ticks */}
-            <div className="mt-1 flex justify-between text-[9px] font-medium text-slate-400">
+            <div className="mt-1 flex justify-between text-[9px] font-medium text-muted-foreground">
               {allDateRange.filter((_, i) => i % Math.max(1, Math.floor(allDateRange.length / 6)) === 0 || i === allDateRange.length - 1).map((date) => (
                 <span key={date}>{date.slice(5)}</span>
               ))}
@@ -475,7 +477,7 @@ export default function MapView() {
 
             {/* Drug Filters */}
             <div className="mt-4 border-t border-slate-200/60 pt-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Filter by Drug Type
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -486,7 +488,7 @@ export default function MapView() {
                     className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
                       activeCategories.has(cat.name)
                         ? "bg-slate-100 text-slate-800 ring-1 ring-slate-900/5 shadow-sm"
-                        : "text-slate-400 border border-slate-200 bg-transparent hover:bg-slate-50"
+                        : "text-muted-foreground border border-slate-200 bg-transparent hover:bg-slate-50"
                     }`}
                   >
                     <div

@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Activity,
   Zap,
+  Download,
 } from "lucide-react";
 import {
   AreaChart,
@@ -69,7 +70,7 @@ function KpiCard({
     <div
       onClick={onClick}
       className={`glass-card group relative overflow-hidden p-5 ${glowClass} cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-lg`}
-      style={{ ['--kpi-accent' as any]: color }}
+      style={{ '--kpi-accent': color } as React.CSSProperties}
     >
       {/* Background gradient accent */}
       <div
@@ -83,7 +84,7 @@ function KpiCard({
       />
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             {title}
           </p>
           <p className="mt-2 text-2xl font-bold text-white">{value}</p>
@@ -119,16 +120,16 @@ function KpiCard({
 }
 
 // ── Custom Chart Tooltip ──
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
   if (!active || !payload) return null;
   return (
     <div className="tooltip-content">
       <p className="mb-1 font-medium">{label}</p>
-      {payload.map((entry: any, i: number) => (
+      {payload.map((entry: Record<string, any>, i: number) => (
         <div key={i} className="flex items-center gap-2 text-[11px]">
           <div className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
-          <span className="text-slate-400">{entry.name}:</span>
-          <span className="font-medium text-slate-200">{entry.value}</span>
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="font-medium text-foreground">{entry.value}</span>
         </div>
       ))}
     </div>
@@ -155,6 +156,7 @@ function SourceBadge({ type }: { type: string }) {
 export default function Dashboard() {
   const openDossier = useAppStore((s) => s.openDossier);
   const setActiveView = useAppStore((s) => s.setActiveView);
+  const currentUser = useAppStore((s) => s.currentUser);
   
   return (
     <div className="grid-bg min-h-full p-6">
@@ -163,19 +165,21 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-white">Operations Dashboard</h1>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Real-time intelligence overview • Last updated 2 min ago
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-slate-900/50 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200">
+            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-slate-900/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
               <Clock className="h-3 w-3" />
               Last 7 Days
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/20">
-              <Zap className="h-3 w-3" />
-              Export Report
-            </button>
+            {currentUser && currentUser.clearanceLevel >= 2 && (
+              <button className="flex items-center gap-2 rounded-lg border border-border bg-slate-800/50 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                <Download className="h-4 w-4" />
+                Export Report
+              </button>
+            )}
           </div>
         </div>
 
@@ -226,22 +230,22 @@ export default function Dashboard() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-white">Weekly Activity</h3>
-                <p className="mt-0.5 text-[11px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                   Listings, transactions, and alert trends
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <div className="h-2 w-2 rounded-full bg-cyan-400" />
-                  <span className="text-[10px] text-slate-500">Listings</span>
+                  <span className="text-[10px] text-muted-foreground">Listings</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-2 w-2 rounded-full bg-purple-400" />
-                  <span className="text-[10px] text-slate-500">Transactions</span>
+                  <span className="text-[10px] text-muted-foreground">Transactions</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-2 w-2 rounded-full bg-red-400" />
-                  <span className="text-[10px] text-slate-500">Alerts</span>
+                  <span className="text-[10px] text-muted-foreground">Alerts</span>
                 </div>
               </div>
             </div>
@@ -271,7 +275,7 @@ export default function Dashboard() {
           {/* Drug Distribution Pie */}
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold text-white">Drug Category Distribution</h3>
-            <p className="mt-0.5 text-[11px] text-slate-500">By listing volume</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">By listing volume</p>
             <div className="mt-2 flex items-center justify-center">
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
@@ -297,9 +301,9 @@ export default function Dashboard() {
                 <div key={item.name} className="flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                    <span className="text-slate-400">{item.name}</span>
+                    <span className="text-muted-foreground">{item.name}</span>
                   </div>
-                  <span className="font-medium text-slate-300">{item.value}%</span>
+                  <span className="font-medium text-foreground">{item.value}%</span>
                 </div>
               ))}
             </div>
@@ -311,22 +315,22 @@ export default function Dashboard() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-white">Cryptocurrency Volume Tracked</h3>
-              <p className="mt-0.5 text-[11px] text-slate-500">
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
                 BTC, ETH, and XMR tracked volume over time
               </p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-orange-400" />
-                <span className="text-[10px] text-slate-500">BTC</span>
+                <span className="text-[10px] text-muted-foreground">BTC</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-blue-400" />
-                <span className="text-[10px] text-slate-500">ETH</span>
+                <span className="text-[10px] text-muted-foreground">ETH</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-gray-400" />
-                <span className="text-[10px] text-slate-500">XMR</span>
+                <span className="text-[10px] text-muted-foreground">XMR</span>
               </div>
             </div>
           </div>
@@ -347,20 +351,20 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Multi-Source Feed */}
           <div className="glass-card col-span-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
               <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-cyan-400" />
+                <Activity className="h-4 w-4 text-primary" />
                 <h3 className="text-sm font-semibold text-white">Multi-Source Intelligence Feed</h3>
                 <div className="live-dot ml-1" />
               </div>
-              <button className="text-[11px] text-cyan-400 hover:text-cyan-300">
+              <button className="text-[11px] text-primary hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                 View All <ChevronRight className="ml-0.5 inline h-3 w-3" />
               </button>
             </div>
             <div className="flex-1 overflow-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[var(--border)] text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                  <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                     <th className="px-5 py-2.5 text-left">Source</th>
                     <th className="px-3 py-2.5 text-left">Entity</th>
                     <th className="px-3 py-2.5 text-left">Category</th>
@@ -379,11 +383,11 @@ export default function Dashboard() {
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <SourceBadge type={item.sourceType} />
-                          <span className="text-xs text-slate-400">{item.source}</span>
+                          <span className="text-xs text-muted-foreground">{item.source}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <span className="font-mono text-xs font-medium text-slate-200">
+                        <span className="font-mono text-xs font-medium text-foreground">
                           {item.entity}
                         </span>
                       </td>
@@ -408,7 +412,7 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[11px] text-muted-foreground">
                           {getTimeAgo(item.date)}
                         </span>
                       </td>
@@ -424,7 +428,7 @@ export default function Dashboard() {
 
           {/* Alerts Panel */}
           <div className="glass-card flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-red-400" />
                 <h3 className="text-sm font-semibold text-white">Real-Time Alerts</h3>
@@ -458,7 +462,7 @@ export default function Dashboard() {
                       <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${severityDotColors[alert.severity]}`} />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-200">
+                          <span className="text-xs font-semibold text-foreground">
                             {alert.title}
                           </span>
                           <span
@@ -469,13 +473,13 @@ export default function Dashboard() {
                                 ? "bg-orange-500/15 text-orange-400"
                                 : alert.severity === "medium"
                                 ? "bg-yellow-500/15 text-yellow-400"
-                                : "bg-cyan-500/15 text-cyan-400"
+                                : "bg-cyan-500/15 text-primary"
                             }`}
                           >
                             {alert.severity}
                           </span>
                         </div>
-                        <p className="mt-1 text-[11px] leading-relaxed text-slate-500 line-clamp-2">
+                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
                           {alert.description}
                         </p>
                         <div className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-600">

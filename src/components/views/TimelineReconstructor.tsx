@@ -145,14 +145,14 @@ const timelineEventsWithCoords = rawTimelineEvents.map((e, index) => {
 }).sort((a, b) => a.timestamp - b.timestamp);
 
 const EVENT_CONFIG = {
-  genesis: { color: "text-slate-400", bg: "bg-slate-400", hex: "#94a3b8", icon: Fingerprint, label: "GENESIS" },
+  genesis: { color: "text-muted-foreground", bg: "bg-slate-400", hex: "#94a3b8", icon: Fingerprint, label: "GENESIS" },
   market: { color: "text-[#a855f7]", bg: "bg-[#a855f7]", hex: "#a855f7", icon: Activity, label: "MARKET" },
   financial: { color: "text-[#10b981]", bg: "bg-[#10b981]", hex: "#10b981", icon: Bitcoin, label: "FINANCIAL" },
-  opsec: { color: "text-[#ff5572]", bg: "bg-[#ff5572]", hex: "#ff5572", icon: ShieldAlert, label: "OPSEC FAILURE" },
+  opsec: { color: "text-destructive", bg: "bg-[#ff5572]", hex: "#ff5572", icon: ShieldAlert, label: "OPSEC FAILURE" },
 };
 
 // ── Custom ReferenceDot that renders the glowing target pin ──
-const GlowDot = (props: any) => {
+const GlowDot = (props: { cx?: number; cy?: number; payload?: { type: string } }) => {
   const { cx, cy, payload } = props;
   if (!cx || !cy || !payload) return null;
   const config = EVENT_CONFIG[payload.type as TimelineEventType];
@@ -171,7 +171,7 @@ export default function TimelineReconstructor() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchStep, setSearchStep] = useState(0);
   const [hasResults, setHasResults] = useState(false);
-  const [dossierData, setDossierData] = useState<any>(null);
+  const [dossierData, setDossierData] = useState<{ entityId: string; primaryAlias: string; riskScore: number; status: string; financialProfile: { totalVolumeUSD: number; peakOperationPeriod: string; genesisDate: string; coinJoinRounds: number; }; } | null>(null);
 
   // Brush state
   const [brushRange, setBrushRange] = useState<{ startIndex?: number, endIndex?: number }>({ startIndex: 0, endIndex: unifiedGraphData.length - 1 });
@@ -234,10 +234,10 @@ export default function TimelineReconstructor() {
   }, [hasResults, activeGraphData]);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden bg-[#070a10] text-slate-200 hide-scrollbar scroll-smooth">
+    <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden bg-background text-foreground hide-scrollbar scroll-smooth">
       
       {/* Search Header */}
-      <div className="z-20 border-b border-zinc-900 bg-[#070a10]/95 px-8 py-6 backdrop-blur-md sticky top-0 shrink-0">
+      <div className="z-20 border-b border-border bg-background/95 px-8 py-6 backdrop-blur-md sticky top-0 shrink-0">
         <form onSubmit={handleSearch} className="mx-auto max-w-4xl">
           <div className="relative flex items-center">
             <Search className="absolute left-4 h-5 w-5 text-zinc-500" />
@@ -246,13 +246,13 @@ export default function TimelineReconstructor() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Enter Alias, BTC Wallet, PGP Key, or Session ID to reconstruct timeline..."
-              className="w-full rounded-xl border border-zinc-800 bg-[#0d131f] py-4 pl-12 pr-4 text-sm font-medium text-white placeholder-zinc-500 shadow-inner focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all"
+              className="w-full rounded-xl border border-border bg-card py-4 pl-12 pr-4 text-sm font-medium text-white placeholder-zinc-500 shadow-inner focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
               disabled={isSearching}
             />
             <button
               type="submit"
               disabled={isSearching || !query.trim()}
-              className="absolute right-2 rounded-lg bg-[#00ffff] px-6 py-2.5 text-sm font-bold text-[#070a10] transition-all hover:bg-cyan-400 disabled:opacity-50"
+              className="absolute right-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-[#070a10] transition-all hover:bg-cyan-400 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
             >
               Reconstruct
             </button>
@@ -269,8 +269,8 @@ export default function TimelineReconstructor() {
               className="mx-auto mt-6 flex max-w-2xl flex-col items-center justify-center space-y-3"
             >
               <div className="flex items-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#00ffff] border-t-transparent" />
-                <span className="text-sm font-semibold text-[#00ffff]">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-sm font-semibold text-primary">
                   {searchStep === 1 && "Querying Blockchain ledgers..."}
                   {searchStep === 2 && "Scraping Forum Archives & Darknet indices..."}
                   {searchStep === 3 && "Running Stylometry & NLP Analysis..."}
@@ -279,7 +279,7 @@ export default function TimelineReconstructor() {
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-900">
                 <motion.div 
-                  className="h-full bg-[#00ffff]"
+                  className="h-full bg-primary"
                   initial={{ width: "0%" }}
                   animate={{ width: `${(searchStep / 4) * 100}%` }}
                   transition={{ duration: 0.5 }}
@@ -295,23 +295,23 @@ export default function TimelineReconstructor() {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mx-auto mt-6 grid max-w-4xl grid-cols-4 gap-4 rounded-xl border border-zinc-800 bg-[#0d131f] p-4 shadow-lg"
+              className="mx-auto mt-6 grid max-w-4xl grid-cols-4 gap-4 rounded-xl border border-border bg-card p-4 shadow-lg"
             >
-              <div className="flex flex-col border-r border-zinc-800 px-4">
+              <div className="flex flex-col border-r border-border px-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Genesis Date</span>
                 <span className="text-lg font-bold text-white">{dossierData.financialProfile?.genesisDate || 'Unknown'}</span>
               </div>
-              <div className="flex flex-col border-r border-zinc-800 px-4">
+              <div className="flex flex-col border-r border-border px-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Peak Operation</span>
                 <span className="text-lg font-bold text-[#10b981]">{dossierData.financialProfile?.peakOperationPeriod || 'Unknown'}</span>
               </div>
-              <div className="flex flex-col border-r border-zinc-800 px-4">
+              <div className="flex flex-col border-r border-border px-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Est. Volume</span>
                 <span className="text-lg font-bold text-[#10b981]">${dossierData.financialProfile?.totalVolumeUSD?.toLocaleString() || 0}</span>
               </div>
               <div className="flex flex-col px-4">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Current Status</span>
-                <span className={`text-lg font-bold ${dossierData.status === 'Seized' ? 'text-red-500' : 'text-[#ff5572]'}`}>{dossierData.status}</span>
+                <span className={`text-lg font-bold ${dossierData.status === 'Seized' ? 'text-red-500' : 'text-destructive'}`}>{dossierData.status}</span>
               </div>
             </motion.div>
           )}
@@ -340,7 +340,7 @@ export default function TimelineReconstructor() {
                     }}
                   >
                     <div
-                      className="w-[220px] rounded-lg border bg-[#0d131f]/80 backdrop-blur-md p-3 shadow-xl transition-all duration-200"
+                      className="w-[220px] rounded-lg border bg-card/80 backdrop-blur-md p-3 shadow-xl transition-all duration-200"
                       style={{
                         borderColor: isHovered ? config.hex : '#334155',
                         borderTopWidth: '2px',
@@ -391,7 +391,7 @@ export default function TimelineReconstructor() {
           </div>
 
           {/* ═══ Unified Canvas Graph ═══ */}
-          <div className="w-full h-[500px] bg-[#070a10] px-6 pb-16">
+          <div className="w-full h-[500px] bg-background px-6 pb-16">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart 
                 ref={chartRef}
@@ -489,7 +489,7 @@ export default function TimelineReconstructor() {
                   stroke="#374151" 
                   fill="#0d131f" 
                   tickFormatter={(ts) => new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })} 
-                  onChange={(e: any) => setBrushRange({ startIndex: e.startIndex, endIndex: e.endIndex })}
+                  onChange={(e: { startIndex?: number; endIndex?: number }) => setBrushRange({ startIndex: e.startIndex, endIndex: e.endIndex })}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -506,17 +506,17 @@ export default function TimelineReconstructor() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedEvent(null)}
-              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-md border-l border-zinc-800 bg-[#0d131f] shadow-2xl"
+              className="fixed bottom-0 right-0 top-0 z-40 w-full max-w-md border-l border-border bg-card shadow-2xl"
             >
               <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4 bg-[#070a10]">
+                <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-background">
                   <div className="flex items-center gap-3">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${EVENT_CONFIG[selectedEvent.type].bg} bg-opacity-20`}>
                        {(() => {
@@ -531,7 +531,7 @@ export default function TimelineReconstructor() {
                   </div>
                   <button
                     onClick={() => setSelectedEvent(null)}
-                    className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+                    className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -541,15 +541,15 @@ export default function TimelineReconstructor() {
                   <h4 className="mb-4 text-lg font-bold text-white">{selectedEvent.title}</h4>
                   <p className="mb-8 text-sm leading-relaxed text-zinc-400">{selectedEvent.summary}</p>
 
-                  <div className="rounded-xl border border-zinc-800 bg-[#070a10] overflow-hidden shadow-inner">
-                    <div className="flex items-center gap-2 border-b border-zinc-800 bg-[#0d131f] px-4 py-2">
+                  <div className="rounded-xl border border-border bg-background overflow-hidden shadow-inner">
+                    <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-2">
                       <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
                       <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                       <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                       <span className="ml-2 text-[10px] font-mono text-zinc-500">raw_data.log</span>
                     </div>
                     <div className="p-4">
-                      <pre className="whitespace-pre-wrap font-mono text-xs text-[#00ffff] leading-relaxed opacity-80">
+                      <pre className="whitespace-pre-wrap font-mono text-xs text-primary leading-relaxed opacity-80">
                         {selectedEvent.evidenceRaw}
                       </pre>
                     </div>

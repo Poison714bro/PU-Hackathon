@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     await client.connect(transport);
 
     // 1. Read the Neo4j graph resource to find the linked wallets
-    let graphData: any;
+    let graphData: Record<string, any> = {};
     try {
       const resourceResult = await client.readResource({
         uri: `neo4j://case-graphs/${entityId}`
@@ -79,8 +79,8 @@ export async function POST(request: Request) {
       arguments: { wallet_address: primaryWallet }
     });
 
-    const toolContent = toolResult.content[0];
-    let ledgerData: any = {};
+    const toolContent = (toolResult.content as any[])[0];
+    let ledgerData: Record<string, any> = {};
     if ('text' in toolContent) {
       ledgerData = JSON.parse(toolContent.text as string);
     }

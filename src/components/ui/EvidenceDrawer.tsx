@@ -70,9 +70,9 @@ function PinDrawer({
   const riskColor = getRiskColor(pin.riskScore);
 
   return (
-    <div className="drawer-enter z-20 flex w-96 flex-col border-l border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-xl">
+    <div className="drawer-enter z-30 flex w-96 flex-col border-l border-border bg-[var(--card)]/95 backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-xl"
@@ -82,10 +82,10 @@ function PinDrawer({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">{pin.label}</h3>
-            <p className="text-[10px] text-slate-500">{pin.drugCategory}</p>
+            <p className="text-[10px] text-muted-foreground">{pin.drugCategory}</p>
           </div>
         </div>
-        <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300">
+        <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -104,29 +104,29 @@ function PinDrawer({
 
         {/* Description */}
         <div>
-          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Intel Summary</h4>
-          <p className="text-xs leading-relaxed text-slate-300">{pin.details}</p>
+          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Intel Summary</h4>
+          <p className="text-xs leading-relaxed text-foreground">{pin.details}</p>
         </div>
 
         {/* Arrest Report */}
         <div>
-          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Arrest / Seizure Report</h4>
-          <div className="rounded-lg border border-[var(--border)] bg-slate-900/50">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-500"><Package className="h-3 w-3" /> Confiscated</span>
-              <span className="font-mono font-medium text-slate-200">{pin.confiscatedAmount || "N/A"}</span>
+          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Arrest / Seizure Report</h4>
+          <div className="rounded-lg border border-border bg-slate-900/50">
+            <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><Package className="h-3 w-3" /> Confiscated</span>
+              <span className="font-mono font-medium text-foreground">{pin.confiscatedAmount || "N/A"}</span>
             </div>
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-500"><Shield className="h-3 w-3" /> Arrests</span>
-              <span className="font-mono font-medium text-slate-200">{pin.arrestCount ?? 0}</span>
+            <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><Shield className="h-3 w-3" /> Arrests</span>
+              <span className="font-mono font-medium text-foreground">{pin.arrestCount ?? 0}</span>
             </div>
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-500"><MapPinIcon className="h-3 w-3" /> Coordinates</span>
-              <span className="font-mono font-medium text-slate-200">{pin.lat.toFixed(4)}, {pin.lng.toFixed(4)}</span>
+            <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><MapPinIcon className="h-3 w-3" /> Coordinates</span>
+              <span className="font-mono font-medium text-foreground">{pin.lat.toFixed(4)}, {pin.lng.toFixed(4)}</span>
             </div>
             <div className="flex items-center justify-between px-3 py-2 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-500"><Clock className="h-3 w-3" /> Date</span>
-              <span className="font-mono font-medium text-slate-200">{pin.date}</span>
+              <span className="flex items-center gap-1.5 text-muted-foreground"><Clock className="h-3 w-3" /> Date</span>
+              <span className="font-mono font-medium text-foreground">{pin.date}</span>
             </div>
           </div>
         </div>
@@ -134,12 +134,12 @@ function PinDrawer({
         {/* Suspects */}
         {pin.suspectNames && pin.suspectNames.length > 0 && (
           <div>
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Known Suspects</h4>
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Known Suspects</h4>
             <div className="space-y-1.5">
               {pin.suspectNames.map((name: string, i: number) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg bg-slate-900/30 px-3 py-2 text-xs">
-                  <Users className="h-3 w-3 text-slate-500" />
-                  <span className="text-slate-300">{name}</span>
+                  <Users className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-foreground">{name}</span>
                 </div>
               ))}
             </div>
@@ -149,7 +149,7 @@ function PinDrawer({
         {/* Linked Graph Nodes */}
         {linkedNodes.length > 0 && (
           <div>
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Linked Intelligence Entities
             </h4>
             <div className="space-y-2">
@@ -160,14 +160,14 @@ function PinDrawer({
                   <button
                     key={node.id}
                     onClick={() => navigateToEntity(node.id, "node", "evidence")}
-                    className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-slate-900/30 px-3 py-2.5 text-left transition-colors hover:bg-slate-800/50"
+                    className="flex w-full items-center gap-3 rounded-lg border border-border bg-slate-900/30 px-3 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
                   >
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: `${config.color}15` }}>
                       <Icon className="h-3.5 w-3.5" style={{ color: config.color }} />
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <p className="truncate text-xs font-medium text-slate-200">{node.label}</p>
-                      <p className="text-[10px] text-slate-500">View in Evidence Graph →</p>
+                      <p className="truncate text-xs font-medium text-foreground">{node.label}</p>
+                      <p className="text-[10px] text-muted-foreground">View in Evidence Graph →</p>
                     </div>
                     <div className="h-1.5 w-1.5 rounded-full" style={{ background: getRiskColor(node.riskScore) }} />
                   </button>
@@ -179,8 +179,8 @@ function PinDrawer({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-[var(--border)] p-4">
-        <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500/10 py-2.5 text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/20">
+      <div className="border-t border-border p-4">
+        <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500/10 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <Plus className="h-3.5 w-3.5" />
           Add to Investigation Log
         </button>
@@ -207,9 +207,9 @@ function NodeDrawer({
   const connectedEdges = graphEdgesData.filter((e) => e.source === node.id || e.target === node.id);
 
   return (
-    <div className="drawer-enter z-20 flex w-96 flex-col border-l border-[var(--border)] bg-[var(--card)]/95 backdrop-blur-xl">
+    <div className="drawer-enter z-30 flex w-96 flex-col border-l border-border bg-[var(--card)]/95 backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-xl"
@@ -219,10 +219,10 @@ function NodeDrawer({
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">{node.label}</h3>
-            <p className="text-[10px] capitalize text-slate-500">{config.label}</p>
+            <p className="text-[10px] capitalize text-muted-foreground">{config.label}</p>
           </div>
         </div>
-        <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300">
+        <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -247,18 +247,18 @@ function NodeDrawer({
 
         {/* Description */}
         <div>
-          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Evidence Summary</h4>
-          <p className="text-xs leading-relaxed text-slate-300">{node.details}</p>
+          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Evidence Summary</h4>
+          <p className="text-xs leading-relaxed text-foreground">{node.details}</p>
         </div>
 
         {/* Metadata */}
         <div>
-          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Intelligence Data</h4>
-          <div className="rounded-lg border border-[var(--border)] bg-slate-900/50">
+          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Intelligence Data</h4>
+          <div className="rounded-lg border border-border bg-slate-900/50">
             {Object.entries(node.metadata).map(([key, value], i, arr) => (
-              <div key={key} className={`flex items-center justify-between px-3 py-2 text-xs ${i < arr.length - 1 ? "border-b border-[var(--border)]" : ""}`}>
-                <span className="text-slate-500">{key}</span>
-                <span className="font-mono font-medium text-slate-200">{value}</span>
+              <div key={key} className={`flex items-center justify-between px-3 py-2 text-xs ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
+                <span className="text-muted-foreground">{key}</span>
+                <span className="font-mono font-medium text-foreground">{value}</span>
               </div>
             ))}
           </div>
@@ -266,7 +266,7 @@ function NodeDrawer({
 
         {/* Connected Entities */}
         <div>
-          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Connected Entities</h4>
+          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Connected Entities</h4>
           <div className="space-y-2">
             {connectedEdges.map((edge) => {
               const connectedId = edge.source === node.id ? edge.target : edge.source;
@@ -279,14 +279,14 @@ function NodeDrawer({
                 <button
                   key={edge.id}
                   onClick={() => navigateToEntity(connectedNode.id, "node", "evidence")}
-                  className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-slate-900/30 px-3 py-2.5 text-left transition-colors hover:bg-slate-800/50"
+                  className="flex w-full items-center gap-3 rounded-lg border border-border bg-slate-900/30 px-3 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
                 >
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: `${cfg.color}15` }}>
                     <ConnIcon className="h-3.5 w-3.5" style={{ color: cfg.color }} />
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-xs font-medium text-slate-200">{connectedNode.label}</p>
-                    <p className="text-[10px] text-slate-500">{edge.label} • {methodLabel}</p>
+                    <p className="truncate text-xs font-medium text-foreground">{connectedNode.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{edge.label} • {methodLabel}</p>
                   </div>
                   <div className="h-1.5 w-1.5 rounded-full" style={{ background: getRiskColor(connectedNode.riskScore) }} />
                 </button>
@@ -298,20 +298,20 @@ function NodeDrawer({
         {/* Linked Map Locations */}
         {linkedPins.length > 0 && (
           <div>
-            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Linked Locations</h4>
+            <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Linked Locations</h4>
             <div className="space-y-2">
               {linkedPins.map((pin) => (
                 <button
                   key={pin.id}
                   onClick={() => navigateToEntity(pin.id, "pin", "map")}
-                  className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-slate-900/30 px-3 py-2.5 text-left transition-colors hover:bg-slate-800/50"
+                  className="flex w-full items-center gap-3 rounded-lg border border-border bg-slate-900/30 px-3 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
                 >
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: `${getDrugColor(pin.drugCategory)}15` }}>
                     <MapPinIcon className="h-3.5 w-3.5" style={{ color: getDrugColor(pin.drugCategory) }} />
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-xs font-medium text-slate-200">{pin.label}</p>
-                    <p className="text-[10px] text-slate-500">Locate on Map →</p>
+                    <p className="truncate text-xs font-medium text-foreground">{pin.label}</p>
+                    <p className="text-[10px] text-muted-foreground">Locate on Map →</p>
                   </div>
                 </button>
               ))}
@@ -321,7 +321,7 @@ function NodeDrawer({
 
         {/* Activity Timeline */}
         <div>
-          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Activity Timeline</h4>
+          <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Activity Timeline</h4>
           <div className="space-y-0">
             {[
               { time: "2h ago", event: "Risk score updated to " + node.riskScore, type: "update" },
@@ -335,7 +335,7 @@ function NodeDrawer({
                   {i < 3 && <div className="mt-1 h-full w-px bg-slate-800" />}
                 </div>
                 <div>
-                  <p className="text-[11px] text-slate-300">{log.event}</p>
+                  <p className="text-[11px] text-foreground">{log.event}</p>
                   <p className="text-[10px] text-slate-600">{log.time}</p>
                 </div>
               </div>
@@ -345,12 +345,12 @@ function NodeDrawer({
       </div>
 
       {/* Footer */}
-      <div className="space-y-2 border-t border-[var(--border)] p-4">
-        <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500/10 py-2.5 text-xs font-medium text-cyan-400 transition-colors hover:bg-cyan-500/20">
+      <div className="space-y-2 border-t border-border p-4">
+        <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500/10 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <Plus className="h-3.5 w-3.5" />
           Add to Investigation Log
         </button>
-        <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--border)] py-2 text-xs text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200">
+        <button className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <FileText className="h-3.5 w-3.5" />
           Export Evidence Report
         </button>

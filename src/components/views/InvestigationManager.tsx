@@ -30,7 +30,7 @@ const priorityConfig: Record<
   critical: { color: "text-red-400", bg: "bg-red-500/10 border-red-500/20", label: "CRITICAL" },
   high: { color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", label: "HIGH" },
   medium: { color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20", label: "MEDIUM" },
-  low: { color: "text-cyan-400", bg: "bg-cyan-500/10 border-cyan-500/20", label: "LOW" },
+  low: { color: "text-primary", bg: "bg-cyan-500/10 border-primary/20", label: "LOW" },
 };
 
 const columnIcons: Record<string, React.ElementType> = {
@@ -65,25 +65,25 @@ function InvestigationCardComponent({ card, onDragStart }: { card: Investigation
         </span>
       </div>
       <h4 className="mb-1 text-xs font-semibold text-white">{card.title}</h4>
-      <p className="mb-3 text-[11px] leading-relaxed text-slate-500 line-clamp-2">
+      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
         {card.description}
       </p>
       <div className="mb-2 flex flex-wrap gap-1">
         {card.tags.map((tag) => (
           <span
             key={tag}
-            className="rounded-full bg-slate-800/80 px-2 py-0.5 text-[9px] font-medium text-slate-400"
+            className="rounded-full bg-slate-800/80 px-2 py-0.5 text-[9px] font-medium text-muted-foreground"
           >
             {tag}
           </span>
         ))}
       </div>
-      <div className="flex items-center justify-between border-t border-[var(--border)] pt-2">
+      <div className="flex items-center justify-between border-t border-border pt-2">
         <div className="flex items-center gap-2">
           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-[8px] font-bold text-white">
             {card.assignee.split(" ")[1]?.[0] || "A"}
           </div>
-          <span className="text-[10px] text-slate-500">{card.assignee}</span>
+          <span className="text-[10px] text-muted-foreground">{card.assignee}</span>
         </div>
         <div className="flex items-center gap-3 text-[10px] text-slate-600">
           <div className="flex items-center gap-1">
@@ -98,13 +98,13 @@ function InvestigationCardComponent({ card, onDragStart }: { card: Investigation
       </div>
       {/* Hover actions */}
       <div className="mt-2 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button className="flex-1 rounded bg-cyan-500/10 py-1 text-center text-[10px] text-cyan-400 hover:bg-cyan-500/20">
+        <button className="flex-1 rounded bg-cyan-500/10 py-1 text-center text-[10px] text-primary hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           View
         </button>
-        <button className="flex-1 rounded bg-slate-800/50 py-1 text-center text-[10px] text-slate-400 hover:bg-slate-800">
+        <button className="flex-1 rounded bg-slate-800/50 py-1 text-center text-[10px] text-muted-foreground hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           Edit
         </button>
-        <button className="rounded bg-slate-800/50 px-2 py-1 text-slate-500 hover:bg-slate-800 hover:text-slate-300">
+        <button className="rounded bg-slate-800/50 px-2 py-1 text-muted-foreground hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <MoreHorizontal className="h-3 w-3" />
         </button>
       </div>
@@ -177,7 +177,7 @@ export default function InvestigationManager() {
   return (
     <div className="grid-bg flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/80 px-6 py-3 backdrop-blur-xl">
+      <div className="flex items-center justify-between border-b border-border bg-[var(--background)]/80 px-6 py-3 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10">
             <FolderOpen className="h-4 w-4 text-amber-400" />
@@ -186,28 +186,28 @@ export default function InvestigationManager() {
             <h2 className="text-sm font-bold text-white">
               Investigation Management
             </h2>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-muted-foreground">
               {totalCards} cases • Drag & drop to update status
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Search */}
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-slate-900/40 px-3 py-1.5">
-            <Search className="h-3.5 w-3.5 text-slate-500" />
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-slate-900/40 px-3 py-1.5">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search cases, tags..."
-              className="w-48 bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-none"
+              className="w-48 bg-transparent text-xs text-foreground placeholder-slate-600 outline-none"
             />
           </div>
-          <button className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-slate-900/50 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-slate-900/50 px-3 py-1.5 text-xs text-muted-foreground hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
             <Filter className="h-3 w-3" />
             Filter
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-400 hover:bg-cyan-500/20">
+          <button className="flex items-center gap-1.5 rounded-lg bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
             <Plus className="h-3 w-3" />
             New Case
           </button>
@@ -215,7 +215,7 @@ export default function InvestigationManager() {
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)]/50 px-6 py-2">
+      <div className="flex items-center justify-between border-b border-border bg-[var(--background)]/50 px-6 py-2">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 px-3 py-1">
             <Shield className="h-3 w-3 text-amber-400" />
@@ -229,15 +229,15 @@ export default function InvestigationManager() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1 text-[10px] text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1 text-[10px] text-muted-foreground hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
             <FileDown className="h-3 w-3" />
             Export PDF
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1 text-[10px] text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1 text-[10px] text-muted-foreground hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
             <Download className="h-3 w-3" />
             Export CSV
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1 text-[10px] text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <button className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1 text-[10px] text-muted-foreground hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
             <FileText className="h-3 w-3" />
             Generate Report
           </button>
@@ -276,7 +276,7 @@ export default function InvestigationManager() {
                     {column.cards.length}
                   </span>
                 </div>
-                <button className="text-slate-600 hover:text-slate-400">
+                <button className="text-slate-600 hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                   <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -284,7 +284,7 @@ export default function InvestigationManager() {
               {/* Column Body */}
               <div
                 className={`kanban-column flex-1 space-y-3 overflow-auto p-3 transition-all ${
-                  draggedCard ? "border-dashed border-cyan-500/30" : ""
+                  draggedCard ? "border-dashed border-primary/30" : ""
                 }`}
               >
                 {column.cards.map((card) => (
@@ -295,7 +295,7 @@ export default function InvestigationManager() {
                   />
                 ))}
                 {column.cards.length === 0 && (
-                  <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-[var(--border)] text-xs text-slate-600">
+                  <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border text-xs text-slate-600">
                     Drop cases here
                   </div>
                 )}

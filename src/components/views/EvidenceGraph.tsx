@@ -413,11 +413,11 @@ export default function EvidenceGraph() {
   }, [selectedNode]);
 
   return (
-    <div className="relative flex h-full overflow-hidden bg-[#0f111a] font-mono text-slate-300">
+    <div className="relative flex h-full overflow-hidden bg-card font-mono text-foreground">
       {/* Main Graph Area */}
       <div className="flex flex-1 flex-col min-w-0 relative">
         {/* ═══ 1. Dynamic Web Generator (Top Action Bar) ═══ */}
-        <div className="z-20 border-b border-[#2d3748] bg-[#0f111a] flex-shrink-0">
+        <div className="z-20 border-b border-[#2d3748] bg-card flex-shrink-0">
           <div className="flex items-center gap-4 px-5 py-3">
             {/* Target Search */}
             <div className="relative flex-1 min-w-[300px]">
@@ -427,7 +427,7 @@ export default function EvidenceGraph() {
                 placeholder="TARGET POI SEED..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-[#2d3748] bg-[#13161f] py-1.5 pl-9 pr-3 text-[10px] uppercase tracking-widest text-[#E2E8F0] placeholder-slate-600 outline-none transition-colors focus:border-[#4A90E2]"
+                className="w-full border border-[#2d3748] bg-card py-1.5 pl-9 pr-3 text-[10px] uppercase tracking-widest text-[#E2E8F0] placeholder-slate-600 outline-none transition-colors focus:border-[#4A90E2]"
               />
             </div>
 
@@ -461,13 +461,13 @@ export default function EvidenceGraph() {
             <div className="relative">
               <button
                 onClick={() => setShowHopsDropdown(!showHopsDropdown)}
-                className="flex items-center gap-2 border border-[#2d3748] bg-[#13161f] px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-[#E2E8F0] hover:border-[#4A90E2]"
+                className="flex items-center gap-2 border border-[#2d3748] bg-card px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-[#E2E8F0] hover:border-[#4A90E2]"
               >
                 HOPS: {hops}
                 <ChevronDown className="h-3 w-3 text-[#718096]" />
               </button>
               {showHopsDropdown && (
-                <div className="absolute right-0 top-full z-50 mt-1 border border-[#2d3748] bg-[#0f111a] shadow-2xl">
+                <div className="absolute right-0 top-full z-50 mt-1 border border-[#2d3748] bg-card shadow-2xl">
                   {[1, 2, 3].map((n) => (
                     <button
                       key={n}
@@ -475,7 +475,7 @@ export default function EvidenceGraph() {
                         setHops(n);
                         setShowHopsDropdown(false);
                       }}
-                      className={`block w-full px-4 py-2 text-left text-[9px] font-bold uppercase tracking-widest transition-colors hover:bg-[#13161f] ${
+                      className={`block w-full px-4 py-2 text-left text-[9px] font-bold uppercase tracking-widest transition-colors hover:bg-card ${
                         hops === n ? "text-[#4A90E2] bg-[#4A90E2]/10" : "text-[#718096]"
                       }`}
                     >
@@ -489,7 +489,7 @@ export default function EvidenceGraph() {
             {/* Spin Web Button */}
             <button 
               onClick={() => reactFlowInstance.current?.setCenter(0, 0, { zoom: 0.8, duration: 800 })}
-              className="flex items-center gap-2 bg-[#4A90E2] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0f111a] transition-all hover:bg-[#3182CE] whitespace-nowrap"
+              className="flex items-center gap-2 bg-[#4A90E2] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0f111a] transition-all hover:bg-[#3182CE] whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
             >
               <Target className="h-3.5 w-3.5" />
               EXECUTE
@@ -511,7 +511,7 @@ export default function EvidenceGraph() {
               maxZoom={2.5}
               defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
               proOptions={{ hideAttribution: true }}
-              className="bg-[#0f111a]"
+              className="bg-card"
             >
               <Background color="transparent" />
               
@@ -544,7 +544,7 @@ export default function EvidenceGraph() {
 
           {/* Floating Collapsible Legend Panel */}
           <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
-              <div className="border border-[#2d3748] bg-[#0f111a] p-3 max-w-[220px]">
+              <div className="border border-[#2d3748] bg-card p-3 max-w-[220px]">
                 <h4 className="text-[8px] font-bold uppercase tracking-widest text-[#718096] mb-2 border-b border-[#2d3748] pb-1">TAXONOMY</h4>
                 <div className="flex flex-col gap-1.5">
                   {Object.entries(nodeTypeConfig).map(([key, config]) => {
@@ -576,13 +576,13 @@ export default function EvidenceGraph() {
 
         return (
           <div
-            className="z-20 flex w-[360px] flex-shrink-0 flex-col border-l border-[#2d3748] bg-[#0f111a] overflow-hidden"
+            className="z-20 flex w-[360px] flex-shrink-0 flex-col border-l border-[#2d3748] bg-card overflow-hidden"
             style={{
               animation: "slideInRight 0.2s ease-out",
             }}
           >
             {/* Dossier Header */}
-            <div className="flex items-center justify-between border-b border-[#2d3748] bg-[#13161f] px-4 py-4 flex-shrink-0">
+            <div className="flex items-center justify-between border-b border-[#2d3748] bg-card px-4 py-4 flex-shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center border" style={{ borderColor: selConfig.color, background: `${selConfig.color}15` }}>
                   <SelIcon className="h-4 w-4" style={{ color: selConfig.color }} />
@@ -596,7 +596,7 @@ export default function EvidenceGraph() {
               </div>
               <button
                 onClick={handleCloseInspector}
-                className="p-1 text-[#718096] transition-colors hover:text-[#E2E8F0] flex-shrink-0"
+                className="p-1 text-[#718096] transition-colors hover:text-[#E2E8F0] flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -604,7 +604,7 @@ export default function EvidenceGraph() {
 
             <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
               {/* TARGET ACTION */}
-              <div className="p-4 border-b border-[#2d3748] shrink-0 bg-[#0f111a]">
+              <div className="p-4 border-b border-[#2d3748] shrink-0 bg-card">
                  {isCurrentTarget ? (
                    <div className="w-full flex items-center justify-center gap-2 bg-[#4A90E2]/10 py-2 text-[10px] font-bold uppercase tracking-widest text-[#4A90E2] border border-[#4A90E2]/30">
                      <Target className="h-3.5 w-3.5" />
@@ -613,7 +613,7 @@ export default function EvidenceGraph() {
                  ) : (
                    <button 
                     onClick={() => setTargetId(selectedNode.id)}
-                    className="w-full flex items-center justify-center gap-2 bg-[#E53E3E] py-2 text-[10px] font-bold uppercase tracking-widest text-[#0f111a] transition-all hover:bg-[#C53030]"
+                    className="w-full flex items-center justify-center gap-2 bg-[#E53E3E] py-2 text-[10px] font-bold uppercase tracking-widest text-[#0f111a] transition-all hover:bg-[#C53030] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
                   >
                     <Crosshair className="h-3.5 w-3.5" />
                     DESIGNATE NEW TARGET
@@ -643,7 +643,7 @@ export default function EvidenceGraph() {
                 <h4 className="mb-2 text-[8px] font-bold uppercase tracking-widest text-[#718096]">
                   ENTITY METADATA
                 </h4>
-                <div className="border border-[#2d3748] bg-[#13161f]">
+                <div className="border border-[#2d3748] bg-card">
                   {Object.entries(selectedNode.metadata).map(([key, value], i, arr) => (
                     <div
                       key={key}
@@ -700,7 +700,7 @@ export default function EvidenceGraph() {
                             }
                           }
                         }}
-                        className="flex w-full items-center gap-2 border border-[#2d3748] bg-[#13161f] px-2 py-1.5 text-left transition-all hover:border-[#4A90E2] group"
+                        className="flex w-full items-center gap-2 border border-[#2d3748] bg-card px-2 py-1.5 text-left transition-all hover:border-[#4A90E2] group"
                       >
                         <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-[#2d3748]">
                           <ConnIcon className="h-3 w-3" style={{ color: cfg.color }} />
@@ -713,7 +713,7 @@ export default function EvidenceGraph() {
                             {edge.label}
                           </p>
                         </div>
-                        <ExternalLink className="h-3 w-3 text-[#718096] group-hover:text-[#4A90E2] flex-shrink-0" />
+                        <ExternalLink className="h-3 w-3 text-[#718096] group-hover:text-[#4A90E2] flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background" />
                       </button>
                     );
                   })}
@@ -722,12 +722,12 @@ export default function EvidenceGraph() {
             </div>
 
             {/* Forensic Footer */}
-            <div className="border-t border-[#2d3748] p-3 bg-[#0f111a] flex-shrink-0 mt-auto">
+            <div className="border-t border-[#2d3748] p-3 bg-card flex-shrink-0 mt-auto">
               <div className="flex items-center justify-between mb-3 text-[7px] text-[#718096] font-bold tracking-widest uppercase">
                 <span className="flex items-center gap-1"><Hash className="h-3 w-3"/> SHA-256</span>
                 <span>{mockHash}</span>
               </div>
-              <button className="flex w-full items-center justify-center gap-2 border border-[#2d3748] py-2 text-[9px] font-bold uppercase tracking-widest text-[#E2E8F0] transition-colors hover:bg-[#2d3748]">
+              <button className="flex w-full items-center justify-center gap-2 border border-[#2d3748] py-2 text-[9px] font-bold uppercase tracking-widest text-[#E2E8F0] transition-colors hover:bg-[#2d3748] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                 <Plus className="h-3 w-3" />
                 APPEND TO DOSSIER
               </button>

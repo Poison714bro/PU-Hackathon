@@ -32,7 +32,7 @@ const SEV_COLORS: Record<string, { dot: string; bg: string; border: string; text
   critical: { dot: "bg-red-500", bg: "bg-red-500/5", border: "border-l-red-500", text: "text-red-400" },
   high: { dot: "bg-orange-500", bg: "bg-orange-500/5", border: "border-l-orange-500", text: "text-orange-400" },
   medium: { dot: "bg-yellow-500", bg: "bg-yellow-500/5", border: "border-l-yellow-500", text: "text-yellow-400" },
-  low: { dot: "bg-cyan-500", bg: "bg-cyan-500/5", border: "border-l-cyan-500", text: "text-cyan-400" },
+  low: { dot: "bg-cyan-500", bg: "bg-cyan-500/5", border: "border-l-cyan-500", text: "text-primary" },
 };
 
 export default function ReportAlerts() {
@@ -45,10 +45,10 @@ export default function ReportAlerts() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#070a10] text-slate-200 overflow-hidden">
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
       {/* Breadcrumb */}
-      <div className="shrink-0 border-b border-zinc-800 bg-[#0d131f] px-6 py-4">
-        <button onClick={() => setActiveView("dashboard")} className="flex items-center gap-2 text-xs text-slate-500 hover:text-cyan-400 transition-colors mb-3">
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
+        <button onClick={() => setActiveView("dashboard")} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors mb-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Operations Dashboard
         </button>
         <div className="flex items-center justify-between">
@@ -56,7 +56,7 @@ export default function ReportAlerts() {
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <Bell className="h-5 w-5 text-purple-400" /> Priority Alert Triage Inbox
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {alerts.filter((a) => !a.acknowledged).length} unacknowledged • {alerts.length} total alerts
             </p>
           </div>
@@ -66,7 +66,7 @@ export default function ReportAlerts() {
       {/* Split Pane */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Alert List */}
-        <div className="w-[420px] border-r border-zinc-800 overflow-y-auto shrink-0">
+        <div className="w-[420px] border-r border-border overflow-y-auto shrink-0">
           {alerts.map((alert) => {
             const sev = SEV_COLORS[alert.severity];
             const isSelected = selectedAlert?.id === alert.id;
@@ -83,7 +83,7 @@ export default function ReportAlerts() {
                       <span className="text-xs font-bold text-white truncate">{alert.title}</span>
                       <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${sev.text} ${sev.bg}`}>{alert.severity}</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{alert.description}</p>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{alert.description}</p>
                     <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-600">
                       <Clock className="h-3 w-3" />
                       <span>{alert.timestamp}</span>
@@ -91,7 +91,7 @@ export default function ReportAlerts() {
                       <span>{alert.source}</span>
                     </div>
                   </div>
-                  <ChevronRight className={`h-4 w-4 shrink-0 mt-1 transition-colors ${isSelected ? "text-cyan-400" : "text-slate-700"}`} />
+                  <ChevronRight className={`h-4 w-4 shrink-0 mt-1 transition-colors ${isSelected ? "text-primary" : "text-slate-700"}`} />
                 </div>
               </div>
             );
@@ -102,39 +102,39 @@ export default function ReportAlerts() {
         {selectedAlert ? (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Detail Header */}
-            <div className="shrink-0 border-b border-zinc-800 bg-[#0d131f] px-6 py-4">
+            <div className="shrink-0 border-b border-border bg-card px-6 py-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`h-3 w-3 rounded-full ${SEV_COLORS[selectedAlert.severity].dot}`} />
                 <h2 className="text-lg font-bold text-white">{selectedAlert.title}</h2>
                 <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${SEV_COLORS[selectedAlert.severity].text} ${SEV_COLORS[selectedAlert.severity].bg}`}>{selectedAlert.severity}</span>
               </div>
-              <p className="text-sm text-slate-400">{selectedAlert.description}</p>
+              <p className="text-sm text-muted-foreground">{selectedAlert.description}</p>
             </div>
 
             {/* Payload */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="rounded-xl border border-zinc-800 bg-[#0d131f] overflow-hidden shadow-inner">
-                <div className="flex items-center gap-2 border-b border-zinc-800 bg-[#13161f] px-4 py-2">
+              <div className="rounded-xl border border-border bg-card overflow-hidden shadow-inner">
+                <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-rose-500" />
                   <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                   <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   <span className="ml-2 text-[10px] font-mono text-zinc-500">alert_payload.log</span>
                 </div>
                 <div className="p-5">
-                  <pre className="whitespace-pre-wrap font-mono text-xs text-cyan-400 leading-relaxed">{selectedAlert.payload}</pre>
+                  <pre className="whitespace-pre-wrap font-mono text-xs text-primary leading-relaxed">{selectedAlert.payload}</pre>
                 </div>
               </div>
             </div>
 
             {/* Action Bar */}
-            <div className="shrink-0 border-t border-zinc-800 bg-[#0d131f] px-6 py-4 flex items-center gap-3">
-              <button onClick={() => acknowledge(selectedAlert.id)} className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20">
+            <div className="shrink-0 border-t border-border bg-card px-6 py-4 flex items-center gap-3">
+              <button onClick={() => acknowledge(selectedAlert.id)} className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                 <Check className="h-3.5 w-3.5" /> Acknowledge
               </button>
-              <button className="flex items-center gap-1.5 rounded-lg bg-orange-500/10 px-4 py-2.5 text-xs font-bold text-orange-400 hover:bg-orange-500/20 transition-colors border border-orange-500/20">
+              <button className="flex items-center gap-1.5 rounded-lg bg-orange-500/10 px-4 py-2.5 text-xs font-bold text-orange-400 hover:bg-orange-500/20 transition-colors border border-orange-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                 <ArrowUpRight className="h-3.5 w-3.5" /> Escalate to Supervisor
               </button>
-              <button className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2.5 text-xs font-bold text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-zinc-700">
+              <button className="flex items-center gap-1.5 rounded-lg bg-slate-800 px-4 py-2.5 text-xs font-bold text-muted-foreground hover:bg-slate-700 hover:text-white transition-colors border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
                 <XCircle className="h-3.5 w-3.5" /> Dismiss False Positive
               </button>
             </div>

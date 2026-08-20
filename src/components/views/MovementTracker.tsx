@@ -115,20 +115,20 @@ export default function MovementTracker() {
   ];
 
   return (
-    <div className="flex h-full w-full bg-[#0f111a] text-slate-300 font-mono overflow-hidden">
+    <div className="flex h-full w-full bg-card text-foreground font-mono overflow-hidden">
       
       {/* LEFT SIDEBAR: Global Target Roster */}
-      <div className="w-96 flex flex-col border-r border-slate-800 bg-[#13161f] shadow-2xl z-10">
-        <div className="p-4 border-b border-slate-800">
+      <div className="w-96 flex flex-col border-r border-border bg-card shadow-2xl z-10">
+        <div className="p-4 border-b border-border">
           <h2 className="text-sm font-bold text-slate-100 mb-3 tracking-widest uppercase">Global Target Roster</h2>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search suspect, location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0f111a] border border-slate-800 rounded-md py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-card border border-border rounded-md py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
         </div>
@@ -138,33 +138,33 @@ export default function MovementTracker() {
             <div
               key={entity.id}
               onClick={() => handleSelectEntity(entity)}
-              className={`p-4 border-b border-slate-800/50 cursor-pointer transition-all ${
+              className={`p-4 border-b border-border/50 cursor-pointer transition-all ${
                 selectedEntity?.id === entity.id ? "bg-slate-800/40 border-l-2" : "hover:bg-slate-800/20 border-l-2 border-l-transparent"
               }`}
               style={{ borderLeftColor: selectedEntity?.id === entity.id ? getDrugColor(entity.category) : "transparent" }}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-[#0f111a] border border-slate-700 flex items-center justify-center font-bold text-xs" style={{ color: getDrugColor(entity.category) }}>
+                  <div className="w-8 h-8 rounded bg-card border border-slate-700 flex items-center justify-center font-bold text-xs" style={{ color: getDrugColor(entity.category) }}>
                     {entity.alias.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-200">{entity.alias}</h3>
-                    <p className="text-[10px] text-slate-500">{entity.id}</p>
+                    <h3 className="text-sm font-bold text-foreground">{entity.alias}</h3>
+                    <p className="text-[10px] text-muted-foreground">{entity.id}</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-muted-foreground font-bold">
                     RISK: {entity.risk}
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-3 text-[10px]">
-                <div className="flex items-center gap-1.5 text-slate-400">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
                   <MapPinIcon className="h-3 w-3" />
                   <span className="truncate">{entity.location}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-slate-400">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Database className="h-3 w-3" />
                   <span className="truncate">{entity.source}</span>
                 </div>
@@ -182,7 +182,7 @@ export default function MovementTracker() {
             <DeckGL
               layers={layers}
               initialViewState={viewState}
-              onViewStateChange={(e: any) => setViewState(e.viewState)}
+              onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
             >
               <Map mapStyle={MAP_STYLE} reuseMaps />
@@ -192,26 +192,26 @@ export default function MovementTracker() {
           {/* Map Overlay Header */}
           {selectedEntity && (
             <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
-              <div className="bg-[#13161f]/90 border border-slate-800 p-4 rounded shadow-2xl backdrop-blur-md pointer-events-auto">
-                <div className="text-[10px] text-slate-500 mb-1">TRACKING ACTIVE TARGET</div>
+              <div className="bg-card/90 border border-border p-4 rounded shadow-2xl backdrop-blur-md pointer-events-auto">
+                <div className="text-[10px] text-muted-foreground mb-1">TRACKING ACTIVE TARGET</div>
                 <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
                   {selectedEntity.alias}
                   <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: getDrugColor(selectedEntity.category) }}></div>
                 </h1>
-                <p className="text-xs text-slate-400 mt-1 uppercase">LAST PING: {new Date(selectedEntity.date).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1 uppercase">LAST PING: {new Date(selectedEntity.date).toLocaleString()}</p>
               </div>
-              <div className="bg-[#13161f]/90 border border-slate-800 p-4 rounded shadow-2xl backdrop-blur-md flex gap-6 text-xs pointer-events-auto">
+              <div className="bg-card/90 border border-border p-4 rounded shadow-2xl backdrop-blur-md flex gap-6 text-xs pointer-events-auto">
                 <div>
-                  <div className="text-slate-500 mb-1">CATEGORY</div>
+                  <div className="text-muted-foreground mb-1">CATEGORY</div>
                   <div style={{ color: getDrugColor(selectedEntity.category) }}>{selectedEntity.category}</div>
                 </div>
                 <div>
-                  <div className="text-slate-500 mb-1">STATUS</div>
-                  <div className="text-slate-200">{selectedEntity.status}</div>
+                  <div className="text-muted-foreground mb-1">STATUS</div>
+                  <div className="text-foreground">{selectedEntity.status}</div>
                 </div>
                 <div>
-                  <div className="text-slate-500 mb-1">PLATFORM</div>
-                  <div className="text-slate-200">{selectedEntity.platform}</div>
+                  <div className="text-muted-foreground mb-1">PLATFORM</div>
+                  <div className="text-foreground">{selectedEntity.platform}</div>
                 </div>
               </div>
             </div>
@@ -220,16 +220,16 @@ export default function MovementTracker() {
 
         {/* Bottom Panel: Entity Overview */}
         {selectedEntity ? (
-          <div className="h-64 border-t border-slate-800 bg-[#13161f] p-4 flex gap-6 overflow-x-auto">
-            <div className="flex-1 min-w-[300px] bg-[#0f111a] border border-slate-800 rounded p-4">
-              <h3 className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+          <div className="h-64 border-t border-border bg-card p-4 flex gap-6 overflow-x-auto">
+            <div className="flex-1 min-w-[300px] bg-card border border-border rounded p-4">
+              <h3 className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4" /> EVIDENCE RECORD
               </h3>
-              <p className="text-sm text-slate-300 leading-relaxed">{selectedEntity.evidence}</p>
+              <p className="text-sm text-foreground leading-relaxed">{selectedEntity.evidence}</p>
             </div>
             
-            <div className="flex-1 min-w-[300px] bg-[#0f111a] border border-slate-800 rounded p-4">
-              <h3 className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+            <div className="flex-1 min-w-[300px] bg-card border border-border rounded p-4">
+              <h3 className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
                 <Radio className="h-4 w-4" /> DIGITAL FOOTPRINT
               </h3>
               <div className="grid grid-cols-[100px_1fr] gap-y-3 text-xs">
@@ -244,22 +244,22 @@ export default function MovementTracker() {
               </div>
             </div>
 
-            <div className="flex-1 min-w-[300px] bg-[#0f111a] border border-slate-800 rounded p-4">
-              <h3 className="text-xs text-slate-500 mb-3 flex items-center gap-2">
+            <div className="flex-1 min-w-[300px] bg-card border border-border rounded p-4">
+              <h3 className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
                 <Activity className="h-4 w-4" /> RECENT HOPS
               </h3>
               <div className="flex flex-col gap-2">
                 {syntheticHops.map((hop, i) => (
-                  <div key={i} className="flex justify-between text-xs border-b border-slate-800/50 pb-2">
-                    <span className="text-slate-300">{hop.name}</span>
-                    <span className="text-slate-500">{hop.lat.toFixed(4)}, {hop.lng.toFixed(4)}</span>
+                  <div key={i} className="flex justify-between text-xs border-b border-border/50 pb-2">
+                    <span className="text-foreground">{hop.name}</span>
+                    <span className="text-muted-foreground">{hop.lat.toFixed(4)}, {hop.lng.toFixed(4)}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         ) : (
-          <div className="h-64 border-t border-slate-800 bg-[#13161f] flex items-center justify-center text-slate-600 text-sm">
+          <div className="h-64 border-t border-border bg-card flex items-center justify-center text-slate-600 text-sm">
             Select a target from the roster to view their intelligence dossier and movement pattern.
           </div>
         )}
