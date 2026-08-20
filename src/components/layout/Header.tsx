@@ -54,11 +54,13 @@ const searchIndex = buildSearchIndex();
 
 export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const navigateToEntity = useAppStore((s) => s.navigateToEntity);
   const setActiveView = useAppStore((s) => s.setActiveView);
@@ -72,6 +74,61 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
       item.label.toLowerCase().includes(q) || item.id.toLowerCase().includes(q)
     ).slice(0, 8);
   }, [searchQuery]);
+
+  useEffect(() => {
+    try {
+      const history = localStorage.getItem("searchHistory");
+      if (history) {
+        setSearchHistory(JSON.parse(history));
+      }
+    } catch (e) {
+      console.error("Failed to parse search history", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
+
+  const saveSearchHistory = (newHistory: string[]) => {
+    setSearchHistory(newHistory);
+    try {
+      localStorage.setItem("searchHistory", JSON.stringify(newHistory));
+    } catch (e) {
+      console.error("Failed to save search history", e);
+    }
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    if (!query.trim()) return;
+    
+    // Add to history
+    const uniqueHistory = [query, ...searchHistory.filter(q => q !== query)].slice(0, 5);
+    saveSearchHistory(uniqueHistory);
+    
+    // Mock search function
+    console.log("Executing search for:", query);
+    setSearchFocused(false);
+    searchInputRef.current?.blur();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearchSubmit(searchQuery);
+    }
+  };
+
+  const clearHistory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    saveSearchHistory([]);
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -105,20 +162,22 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
     <header className="flex h-14 items-center justify-between border-b border-border bg-[var(--header-bg)] px-6 backdrop-blur-xl">
       {/* Advanced Search */}
       <div className="flex flex-1 items-center gap-3">
-        <div className="relative max-w-2xl flex-1" ref={searchRef}>
+        <div className="relative max-w-lg flex-1" ref={searchRef}>
           <div
             className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-all duration-200 ${
               searchFocused
                 ? "border-primary/50 bg-slate-900/80 shadow-lg shadow-cyan-500/5"
-                : "border-border bg-slate-900/40"
+                : "border-border bg-slate-900/20 opacity-70 hover:opacity-100 hover:bg-slate-900/40"
             }`}
           >
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               onFocus={() => setSearchFocused(true)}
+              onKeyDown={handleKeyDown}
               placeholder="Search wallets, aliases, locations, case IDs..."
               className="w-full bg-transparent text-sm text-foreground placeholder-slate-600 outline-none"
             />
@@ -137,38 +196,75 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
             </div>
           </div>
 
-          {/* Search Results Dropdown */}
-          {searchFocused && searchResults.length > 0 && (
-            <div className="search-results-dropdown absolute left-0 right-0 top-12 z-50 max-h-80 overflow-auto">
-              <div className="border-b border-border px-4 py-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {searchResults.length} results
-                </span>
-              </div>
-              {searchResults.map((result) => {
-                const Icon = result.icon;
-                return (
-                  <button
-                    key={`${result.type}-${result.id}`}
-                    onClick={() => handleResultClick(result)}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
-                  >
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/50">
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="truncate text-xs font-medium text-foreground">{result.label}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {result.type === "pin" ? "Map Location" : result.type === "node" ? "Evidence Entity" : "Investigation Case"}
-                        {" • "}{result.id}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[9px] text-muted-foreground">
-                      {result.view === "map" ? "Map" : result.view === "evidence" ? "Graph" : "Cases"}
+          {/* Search Results / History Dropdown */}
+          {searchFocused && (searchQuery.length >= 2 ? searchResults.length > 0 : searchHistory.length > 0) && (
+            <div className="search-results-dropdown absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
+              {searchQuery.length >= 2 && searchResults.length > 0 && (
+                <>
+                  <div className="border-b border-border px-4 py-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {searchResults.length} results
                     </span>
-                  </button>
-                );
-              })}
+                  </div>
+                  <div className="max-h-80 overflow-auto">
+                    {searchResults.map((result) => {
+                      const Icon = result.icon;
+                      return (
+                        <button
+                          key={`${result.type}-${result.id}`}
+                          onClick={() => handleResultClick(result)}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                        >
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/50">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <p className="truncate text-xs font-medium text-foreground">{result.label}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {result.type === "pin" ? "Map Location" : result.type === "node" ? "Evidence Entity" : "Investigation Case"}
+                              {" • "}{result.id}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[9px] text-muted-foreground">
+                            {result.view === "map" ? "Map" : result.view === "evidence" ? "Graph" : "Cases"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {searchQuery.length < 2 && searchHistory.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between border-b border-border px-4 py-2 bg-slate-900/50">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Recent Searches
+                    </span>
+                    <button 
+                      onClick={clearHistory}
+                      className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors focus:outline-none focus:ring-1 focus:ring-red-400 rounded px-1"
+                    >
+                      Clear History
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-auto">
+                    {searchHistory.map((historyItem, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          onSearchChange(historyItem);
+                          handleSearchSubmit(historyItem);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                      >
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium text-foreground">{historyItem}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

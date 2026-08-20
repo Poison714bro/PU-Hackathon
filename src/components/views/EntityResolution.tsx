@@ -18,27 +18,69 @@ import {
 import ReactFlow, { Background, MarkerType } from "reactflow";
 import "reactflow/dist/style.css";
 
-const MOCK_ALIAS_A = {
-  name: "ShadowPharm",
-  market: "Hydra Market",
-  pgp: "F9B2 4A32 1109 E77A",
-  joinDate: "2023-11-04",
-  description: "Premium grade pharmaceuticals. Stealth packaging guaranteed. Reship policy applies to tracked orders only.",
-  contact: "Tox: 593A1B2C...",
-};
+const MOCK_CANDIDATES = [
+  {
+    aliasA: {
+      name: "ShadowPharm",
+      market: "Hydra Market",
+      pgp: "F9B2 4A32 1109 E77A",
+      joinDate: "2023-11-04",
+      description: "Premium grade pharmaceuticals. Stealth packaging guaranteed. Reship policy applies to tracked orders only.",
+    },
+    aliasB: {
+      name: "BlueSkyDistro",
+      market: "AlphaBay Reborn",
+      pgp: "F9B2 4A32 1109 E77A", 
+      joinDate: "2025-01-12",
+      description: "Top tier pharms. Stealth packaging guaranteed. Reship policy applies to tracked orders only. No refunds.",
+    },
+    confidence: "96%",
+    nlpScore: "89%",
+    visionScore: "94%"
+  },
+  {
+    aliasA: {
+      name: "ChemCartel",
+      market: "Dream Market",
+      pgp: "A12F 99B2 C441 D882",
+      joinDate: "2021-05-18",
+      description: "Bulk orders only. Escrow accepted.",
+    },
+    aliasB: {
+      name: "BulkChemz",
+      market: "Torrez Market",
+      pgp: "A12F 99B2 C441 D882",
+      joinDate: "2023-08-22",
+      description: "Bulk RC supplier. Escrow only.",
+    },
+    confidence: "91%",
+    nlpScore: "82%",
+    visionScore: "88%"
+  },
+  {
+    aliasA: {
+      name: "KushKing",
+      market: "White House Market",
+      pgp: "88D2 11F4 EEE1 90A1",
+      joinDate: "2022-09-10",
+      description: "Best buds on the east coast. Next day delivery.",
+    },
+    aliasB: {
+      name: "EastCoastBuds",
+      market: "Versus Project",
+      pgp: "88D2 11F4 EEE1 90A1",
+      joinDate: "2024-02-05",
+      description: "Premium buds. East coast. NDD available.",
+    },
+    confidence: "98%",
+    nlpScore: "95%",
+    visionScore: "97%"
+  }
+];
 
-const MOCK_ALIAS_B = {
-  name: "BlueSkyDistro",
-  market: "AlphaBay Reborn",
-  pgp: "F9B2 4A32 1109 E77A", // Match
-  joinDate: "2025-01-12",
-  description: "Top tier pharms. Stealth packaging guaranteed. Reship policy applies to tracked orders only. No refunds.",
-  contact: "Tox: 593A1B2C...", // Match
-};
-
-const miniGraphNodes = [
-  { id: "A", position: { x: 30, y: 30 }, data: { label: "ShadowPharm" }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
-  { id: "B", position: { x: 30, y: 130 }, data: { label: "BlueSkyDistro" }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
+const getMiniGraphNodes = (aliasA: string, aliasB: string) => [
+  { id: "A", position: { x: 30, y: 30 }, data: { label: aliasA }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
+  { id: "B", position: { x: 30, y: 130 }, data: { label: aliasB }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
   { id: "C", position: { x: 180, y: 80 }, data: { label: "bc1q9h...x4k2\n$48,200" }, style: { background: "#10b981", color: "#070a10", border: "none", borderRadius: "8px", fontSize: "9px", fontWeight: "bold", width: 100 } },
 ];
 
@@ -49,6 +91,24 @@ const miniGraphEdges = [
 
 export default function EntityResolution() {
   const [matchStatus, setMatchStatus] = useState<"pending" | "merged" | "rejected">("pending");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setMatchStatus("pending");
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < MOCK_CANDIDATES.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setMatchStatus("pending");
+    }
+  };
+
+  const currentCandidate = MOCK_CANDIDATES[currentIndex];
+  const miniGraphNodes = getMiniGraphNodes(currentCandidate.aliasA.name, currentCandidate.aliasB.name);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-background text-foreground custom-scrollbar">
@@ -57,9 +117,23 @@ export default function EntityResolution() {
       <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-6 py-3 backdrop-blur-md shadow-lg">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 border border-border rounded-md bg-card px-2 py-1">
-             <button className="p-1 hover:text-white text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"><ChevronLeft className="h-4 w-4" /></button>
-             <span className="text-xs font-bold text-white uppercase tracking-wider">Reviewing Candidate 3 of 14</span>
-             <button className="p-1 hover:text-white text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"><ChevronRight className="h-4 w-4" /></button>
+             <button 
+                onClick={handlePrevious}
+                disabled={currentIndex === 0}
+                className={`p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${currentIndex === 0 ? 'text-slate-700 cursor-not-allowed' : 'text-muted-foreground hover:text-white'}`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+             <span className="text-xs font-bold text-white uppercase tracking-wider">
+               Reviewing Candidate {currentIndex + 1} of {MOCK_CANDIDATES.length}
+             </span>
+             <button 
+                onClick={handleNext}
+                disabled={currentIndex === MOCK_CANDIDATES.length - 1}
+                className={`p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${currentIndex === MOCK_CANDIDATES.length - 1 ? 'text-slate-700 cursor-not-allowed' : 'text-muted-foreground hover:text-white'}`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
           </div>
           <div className="flex items-center gap-2 border border-border rounded-md bg-card px-3 py-1.5 cursor-pointer hover:bg-[#1e293b] transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
             <Filter className="h-3.5 w-3.5 text-muted-foreground" />
@@ -99,10 +173,10 @@ export default function EntityResolution() {
           <div className="flex-1 rounded-xl border border-border bg-card p-5 shadow-lg">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <span className="rounded bg-[#1e293b] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#a855f7]">Alias A</span>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Active: {MOCK_ALIAS_A.joinDate}</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Active: {currentCandidate.aliasA.joinDate}</span>
             </div>
-            <h2 className="text-2xl font-black text-white truncate" title={MOCK_ALIAS_A.name}>{MOCK_ALIAS_A.name}</h2>
-            <p className="text-sm font-bold text-primary mt-1">{MOCK_ALIAS_A.market}</p>
+            <h2 className="text-2xl font-black text-white truncate" title={currentCandidate.aliasA.name}>{currentCandidate.aliasA.name}</h2>
+            <p className="text-sm font-bold text-primary mt-1">{currentCandidate.aliasA.market}</p>
           </div>
 
           {/* Central Gauge & Expanded Score */}
@@ -120,14 +194,14 @@ export default function EntityResolution() {
                   <path
                     className="stroke-[#10b981] drop-shadow-md transition-all duration-1000"
                     strokeWidth="3"
-                    strokeDasharray="96, 100"
+                    strokeDasharray={`${parseInt(currentCandidate.confidence)}, 100`}
                     fill="none"
                     strokeLinecap="round"
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
                 </svg>
                 <div className="flex flex-col items-center">
-                  <span className="text-lg font-black text-[#10b981]">96%</span>
+                  <span className="text-lg font-black text-[#10b981]">{currentCandidate.confidence}</span>
                 </div>
               </div>
               
@@ -143,11 +217,11 @@ export default function EntityResolution() {
                 </div>
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
                   <span className="text-muted-foreground">Vision</span>
-                  <span className="text-[#10b981]">94%</span>
+                  <span className="text-[#10b981]">{currentCandidate.visionScore}</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
                   <span className="text-muted-foreground">NLP</span>
-                  <span className="text-emerald-400">89%</span>
+                  <span className="text-emerald-400">{currentCandidate.nlpScore}</span>
                 </div>
               </div>
             </div>
@@ -157,10 +231,10 @@ export default function EntityResolution() {
           <div className="flex-1 rounded-xl border border-border bg-card p-5 shadow-lg">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <span className="rounded bg-[#1e293b] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#a855f7]">Alias B</span>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Active: {MOCK_ALIAS_B.joinDate}</span>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Active: {currentCandidate.aliasB.joinDate}</span>
             </div>
-            <h2 className="text-2xl font-black text-white truncate" title={MOCK_ALIAS_B.name}>{MOCK_ALIAS_B.name}</h2>
-            <p className="text-sm font-bold text-primary mt-1">{MOCK_ALIAS_B.market}</p>
+            <h2 className="text-2xl font-black text-white truncate" title={currentCandidate.aliasB.name}>{currentCandidate.aliasB.name}</h2>
+            <p className="text-sm font-bold text-primary mt-1">{currentCandidate.aliasB.market}</p>
           </div>
         </div>
 
@@ -196,11 +270,11 @@ export default function EntityResolution() {
             <div className="space-y-3 flex-1 flex flex-col justify-end">
               <div>
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Alias A PGP</span>
-                <p className="font-mono text-[10px] sm:text-xs text-foreground bg-background p-2 rounded border border-border truncate mt-1">{MOCK_ALIAS_A.pgp}</p>
+                <p className="font-mono text-[10px] sm:text-xs text-foreground bg-background p-2 rounded border border-border truncate mt-1">{currentCandidate.aliasA.pgp}</p>
               </div>
               <div>
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Alias B PGP</span>
-                <p className="font-mono text-[10px] sm:text-xs text-[#10b981] bg-[#10b981]/10 p-2 rounded border border-[#10b981]/30 truncate mt-1">{MOCK_ALIAS_B.pgp}</p>
+                <p className="font-mono text-[10px] sm:text-xs text-[#10b981] bg-[#10b981]/10 p-2 rounded border border-[#10b981]/30 truncate mt-1">{currentCandidate.aliasB.pgp}</p>
               </div>
             </div>
           </div>
@@ -264,19 +338,19 @@ export default function EntityResolution() {
                 <Activity className="h-4 w-4 text-primary" />
                 <span className="text-xs font-bold uppercase tracking-widest text-white">Stylometric NLP Diff</span>
               </div>
-              <span className="text-[10px] font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">89%</span>
+              <span className="text-[10px] font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">{currentCandidate.nlpScore}</span>
             </div>
             <div className="flex flex-col gap-3 flex-1 justify-center">
               <div className="rounded border border-border bg-background p-3">
                 <span className="mb-2 block text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Alias A Description</span>
                 <div className="text-[11px] leading-relaxed text-muted-foreground">
-                  Premium grade pharmaceuticals. <span className="bg-[#10b981]/20 text-[#10b981] font-medium px-1 rounded">Stealth packaging guaranteed. Reship policy</span> applies to tracked orders only.
+                  {currentCandidate.aliasA.description}
                 </div>
               </div>
               <div className="rounded border border-border bg-background p-3">
                 <span className="mb-2 block text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Alias B Description</span>
                 <div className="text-[11px] leading-relaxed text-muted-foreground">
-                  Top tier pharms. <span className="bg-[#10b981]/20 text-[#10b981] font-medium px-1 rounded">Stealth packaging guaranteed. Reship policy</span> applies to tracked orders only. No refunds.
+                  {currentCandidate.aliasB.description}
                 </div>
               </div>
             </div>
@@ -289,7 +363,7 @@ export default function EntityResolution() {
                 <ImageIcon className="h-4 w-4 text-primary" />
                 <span className="text-xs font-bold uppercase tracking-widest text-white">Visual Computer Vision</span>
               </div>
-              <span className="text-[10px] font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">94%</span>
+              <span className="text-[10px] font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/30">{currentCandidate.visionScore}</span>
             </div>
             <p className="mb-3 text-[10px] font-medium text-muted-foreground leading-relaxed">
               Detected identical digital scale and background grain.

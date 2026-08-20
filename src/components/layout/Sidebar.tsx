@@ -134,7 +134,7 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
             >
               <Icon
                 className={`h-[16px] w-[16px] shrink-0 transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  isActive ? "text-cyan-400 fill-cyan-400/20" : "text-muted-foreground group-hover:text-foreground"
                 }`}
               />
               {!collapsed && <span>{item.label}</span>}

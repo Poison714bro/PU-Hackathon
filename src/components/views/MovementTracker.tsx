@@ -65,6 +65,12 @@ export default function MovementTracker() {
     });
   };
 
+  const getRiskColor = (risk: number) => {
+    if (risk >= 80) return "bg-red-500/20 text-red-400 border border-red-500/30";
+    if (risk >= 40) return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
+    return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+  };
+
   const layers = [
     new PathLayer({
       id: "movement-path-layer",
@@ -128,7 +134,7 @@ export default function MovementTracker() {
               placeholder="Search suspect, location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-card border border-border rounded-md py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-slate-900 border border-slate-800 rounded-md py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-colors"
             />
           </div>
         </div>
@@ -139,33 +145,33 @@ export default function MovementTracker() {
               key={entity.id}
               onClick={() => handleSelectEntity(entity)}
               className={`p-4 border-b border-border/50 cursor-pointer transition-all ${
-                selectedEntity?.id === entity.id ? "bg-slate-800/40 border-l-2" : "hover:bg-slate-800/20 border-l-2 border-l-transparent"
+                selectedEntity?.id === entity.id ? "bg-slate-800/70 border-l-4 shadow-inner" : "hover:bg-slate-800/30 border-l-4 border-l-transparent"
               }`}
               style={{ borderLeftColor: selectedEntity?.id === entity.id ? getDrugColor(entity.category) : "transparent" }}
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-card border border-slate-700 flex items-center justify-center font-bold text-xs" style={{ color: getDrugColor(entity.category) }}>
+                  <div className="w-8 h-8 rounded bg-slate-900 border border-slate-700 flex items-center justify-center font-bold text-xs" style={{ color: getDrugColor(entity.category) }}>
                     {entity.alias.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-foreground">{entity.alias}</h3>
+                    <h3 className="text-sm font-bold text-slate-200">{entity.alias}</h3>
                     <p className="text-[10px] text-muted-foreground">{entity.id}</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-muted-foreground font-bold">
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ${getRiskColor(entity.risk)}`}>
                     RISK: {entity.risk}
                   </span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-3 text-[10px]">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <MapPinIcon className="h-3 w-3" />
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <MapPinIcon className="h-3 w-3 text-slate-500" />
                   <span className="truncate">{entity.location}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Database className="h-3 w-3" />
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <Database className="h-3 w-3 text-slate-500" />
                   <span className="truncate">{entity.source}</span>
                 </div>
               </div>
@@ -177,7 +183,7 @@ export default function MovementTracker() {
       {/* MAIN STAGE: Map & Overview */}
       <div className="flex-1 flex flex-col relative">
         {/* Geospatial Canvas */}
-        <div className="flex-1 relative bg-black">
+        <div className="flex-1 relative bg-[#0B0F19]">
           {isClient && (
             <DeckGL
               layers={layers}
@@ -185,33 +191,49 @@ export default function MovementTracker() {
               onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
             >
-              <Map mapStyle={MAP_STYLE} reuseMaps />
+              <Map mapStyle={MAP_STYLE} reuseMaps style={{ opacity: 0.65, mixBlendMode: 'screen' }}>
+                {/* Pulse Animation for Last Known Physical Node */}
+                {syntheticHops.length > 0 && (
+                  <Marker longitude={syntheticHops[2].lng} latitude={syntheticHops[2].lat}>
+                    <div className="relative flex h-8 w-8 items-center justify-center -translate-x-1/2 -translate-y-1/2">
+                      <span 
+                        className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+                        style={{ backgroundColor: getDrugColor(selectedEntity!.category) }}
+                      />
+                      <span 
+                        className="relative inline-flex h-3 w-3 rounded-full"
+                        style={{ backgroundColor: getDrugColor(selectedEntity!.category), boxShadow: `0 0 10px ${getDrugColor(selectedEntity!.category)}` }}
+                      />
+                    </div>
+                  </Marker>
+                )}
+              </Map>
             </DeckGL>
           )}
 
           {/* Map Overlay Header */}
           {selectedEntity && (
             <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
-              <div className="bg-card/90 border border-border p-4 rounded shadow-2xl backdrop-blur-md pointer-events-auto">
-                <div className="text-[10px] text-muted-foreground mb-1">TRACKING ACTIVE TARGET</div>
+              <div className="bg-slate-900/80 border border-slate-700 p-4 rounded shadow-2xl backdrop-blur-md pointer-events-auto min-w-[280px]">
+                <div className="text-[9px] text-muted-foreground mb-1 tracking-widest font-bold">TRACKING ACTIVE TARGET</div>
                 <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
                   {selectedEntity.alias}
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: getDrugColor(selectedEntity.category) }}></div>
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: getDrugColor(selectedEntity.category), boxShadow: `0 0 8px ${getDrugColor(selectedEntity.category)}` }}></div>
                 </h1>
-                <p className="text-xs text-muted-foreground mt-1 uppercase">LAST PING: {new Date(selectedEntity.date).toLocaleString()}</p>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">LAST PING: {new Date(selectedEntity.date).toLocaleString()}</p>
               </div>
-              <div className="bg-card/90 border border-border p-4 rounded shadow-2xl backdrop-blur-md flex gap-6 text-xs pointer-events-auto">
+              <div className="bg-slate-900/80 border border-slate-700 p-4 rounded shadow-2xl backdrop-blur-md flex gap-8 text-xs pointer-events-auto">
                 <div>
-                  <div className="text-muted-foreground mb-1">CATEGORY</div>
-                  <div style={{ color: getDrugColor(selectedEntity.category) }}>{selectedEntity.category}</div>
+                  <div className="text-[9px] font-bold text-muted-foreground mb-1 tracking-widest">CATEGORY</div>
+                  <div className="font-semibold" style={{ color: getDrugColor(selectedEntity.category) }}>{selectedEntity.category}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground mb-1">STATUS</div>
-                  <div className="text-foreground">{selectedEntity.status}</div>
+                  <div className="text-[9px] font-bold text-muted-foreground mb-1 tracking-widest">STATUS</div>
+                  <div className="text-slate-200 font-semibold">{selectedEntity.status}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground mb-1">PLATFORM</div>
-                  <div className="text-foreground">{selectedEntity.platform}</div>
+                  <div className="text-[9px] font-bold text-muted-foreground mb-1 tracking-widest">PLATFORM</div>
+                  <div className="text-slate-200 font-semibold">{selectedEntity.platform}</div>
                 </div>
               </div>
             </div>
@@ -220,46 +242,63 @@ export default function MovementTracker() {
 
         {/* Bottom Panel: Entity Overview */}
         {selectedEntity ? (
-          <div className="h-64 border-t border-border bg-card p-4 flex gap-6 overflow-x-auto">
-            <div className="flex-1 min-w-[300px] bg-card border border-border rounded p-4">
-              <h3 className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4" /> EVIDENCE RECORD
+          <div className="h-64 border-t border-border bg-[#0B0F19] p-4 flex gap-4 overflow-x-auto">
+            <div className="flex-1 min-w-[300px] bg-slate-900/50 border border-slate-800 rounded-lg p-5 flex flex-col relative overflow-hidden">
+              <h3 className="text-[10px] font-bold text-muted-foreground mb-4 flex items-center gap-2 tracking-widest uppercase">
+                <ShieldAlert className="h-4 w-4 text-slate-400" /> EVIDENCE RECORD
               </h3>
-              <p className="text-sm text-foreground leading-relaxed">{selectedEntity.evidence}</p>
+              <div className="absolute top-5 right-5 flex gap-2">
+                <span className="px-2 py-0.5 rounded bg-slate-800 text-[8px] text-slate-400 border border-slate-700">OSINT</span>
+                <span className="px-2 py-0.5 rounded bg-slate-800 text-[8px] text-slate-400 border border-slate-700">SIGINT</span>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed font-sans">{selectedEntity.evidence}</p>
+              <div className="mt-auto pt-4 border-t border-slate-800 flex justify-between items-center text-[9px] text-slate-500">
+                <span>LOGGED: {new Date().toLocaleTimeString()}</span>
+                <span>ID: {selectedEntity.id.split('-')[1]}</span>
+              </div>
             </div>
             
-            <div className="flex-1 min-w-[300px] bg-card border border-border rounded p-4">
-              <h3 className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
-                <Radio className="h-4 w-4" /> DIGITAL FOOTPRINT
+            <div className="flex-1 min-w-[300px] bg-slate-900/50 border border-slate-800 rounded-lg p-5 flex flex-col relative">
+              <h3 className="text-[10px] font-bold text-muted-foreground mb-4 flex items-center gap-2 tracking-widest uppercase">
+                <Radio className="h-4 w-4 text-slate-400" /> DIGITAL FOOTPRINT
               </h3>
-              <div className="grid grid-cols-[100px_1fr] gap-y-3 text-xs">
-                <span className="text-slate-600">WALLET:</span>
-                <span className="text-blue-400 truncate">{selectedEntity.wallet}</span>
+              
+              <div className="absolute top-5 right-5 flex items-end gap-0.5 h-6">
+                {/* Mock Sparkline Graph */}
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="w-1 bg-cyan-500/50 rounded-t-sm" style={{ height: `${20 + Math.random() * 80}%` }} />
+                ))}
+              </div>
+
+              <div className="grid grid-cols-[100px_1fr] gap-y-3 text-xs flex-1">
+                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">WALLET</span>
+                <span className="text-cyan-400 truncate bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{selectedEntity.wallet}</span>
                 
-                <span className="text-slate-600">PGP FINGER:</span>
-                <span className="text-emerald-400 truncate">{selectedEntity.pgp}</span>
+                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">PGP FINGER</span>
+                <span className="text-emerald-400 truncate bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">{selectedEntity.pgp}</span>
                 
-                <span className="text-slate-600">COMMS:</span>
-                <span className="text-purple-400 truncate">{selectedEntity.comms}</span>
+                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">COMMS</span>
+                <span className="text-purple-400 truncate bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">{selectedEntity.comms}</span>
               </div>
             </div>
 
-            <div className="flex-1 min-w-[300px] bg-card border border-border rounded p-4">
-              <h3 className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
-                <Activity className="h-4 w-4" /> RECENT HOPS
+            <div className="flex-1 min-w-[300px] bg-slate-900/50 border border-slate-800 rounded-lg p-5 flex flex-col">
+              <h3 className="text-[10px] font-bold text-muted-foreground mb-4 flex items-center gap-2 tracking-widest uppercase">
+                <Activity className="h-4 w-4 text-slate-400" /> RECENT HOPS
               </h3>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3 flex-1 justify-center">
                 {syntheticHops.map((hop, i) => (
-                  <div key={i} className="flex justify-between text-xs border-b border-border/50 pb-2">
-                    <span className="text-foreground">{hop.name}</span>
-                    <span className="text-muted-foreground">{hop.lat.toFixed(4)}, {hop.lng.toFixed(4)}</span>
+                  <div key={i} className="flex items-center text-xs w-full">
+                    <span className="text-slate-300 font-semibold whitespace-nowrap">{hop.name}</span>
+                    <div className="flex-grow mx-3 border-b border-dotted border-slate-700/70 relative top-[4px]"></div>
+                    <span className="text-slate-500 font-mono whitespace-nowrap tracking-tight">{hop.lat.toFixed(4)}, {hop.lng.toFixed(4)}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         ) : (
-          <div className="h-64 border-t border-border bg-card flex items-center justify-center text-slate-600 text-sm">
+          <div className="h-64 border-t border-border bg-[#0B0F19] flex items-center justify-center text-slate-500 text-sm">
             Select a target from the roster to view their intelligence dossier and movement pattern.
           </div>
         )}
