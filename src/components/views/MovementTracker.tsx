@@ -16,18 +16,24 @@ interface Hop {
   name: string;
   lat: number;
   lng: number;
+  description?: string;
 }
 
 export default function MovementTracker() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEntity, setSelectedEntity] = useState<TrackerEntity | null>(null);
-  const [syntheticHops, setSyntheticHops] = useState<Hop[]>([]);
+  const defaultEntity = trackerData[0];
+  const [selectedEntity, setSelectedEntity] = useState<TrackerEntity | null>(defaultEntity);
+  const [syntheticHops, setSyntheticHops] = useState<Hop[]>([
+    { name: "Origin (VPN/Tor)", lat: defaultEntity.lat + 0.05, lng: defaultEntity.lng - 0.06, description: "Encrypted exit node near Bogota" },
+    { name: "Transit Server", lat: defaultEntity.lat + 0.02, lng: defaultEntity.lng - 0.02, description: "Miami IX Peering Hub" },
+    { name: "Last Known Physical", lat: defaultEntity.lat, lng: defaultEntity.lng, description: "Confirmed MAC via Stingray" }
+  ]);
   const [isClient, setIsClient] = useState(false);
   
   const [viewState, setViewState] = useState({
-    longitude: -40.0,
-    latitude: 35.0,
-    zoom: 2,
+    longitude: defaultEntity.lng,
+    latitude: defaultEntity.lat,
+    zoom: 11.5,
     pitch: 0,
     bearing: 0,
     transitionDuration: 1000,
@@ -50,9 +56,9 @@ export default function MovementTracker() {
     
     // Generate synthetic hops to visualize movement
     const hops = [
-      { name: "Origin (VPN/Tor)", lat: entity.lat + (Math.random() * 15 - 7), lng: entity.lng + (Math.random() * 20 - 10) },
-      { name: "Transit Server", lat: entity.lat + (Math.random() * 5 - 2.5), lng: entity.lng + (Math.random() * 5 - 2.5) },
-      { name: "Last Known Physical", lat: entity.lat, lng: entity.lng }
+      { name: "Origin (VPN/Tor)", lat: entity.lat + 0.05, lng: entity.lng - 0.06, description: "Encrypted exit node" },
+      { name: "Transit Server", lat: entity.lat + 0.02, lng: entity.lng - 0.02, description: "Peering Hub" },
+      { name: "Last Known Physical", lat: entity.lat, lng: entity.lng, description: "Confirmed MAC via Stingray" }
     ];
     setSyntheticHops(hops);
 
@@ -66,9 +72,9 @@ export default function MovementTracker() {
   };
 
   const getRiskColor = (risk: number) => {
-    if (risk >= 80) return "bg-red-500/20 text-red-400 border border-red-500/30";
-    if (risk >= 40) return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
-    return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+    if (risk >= 80) return "bg-red-600 text-white border border-red-400";
+    if (risk >= 40) return "bg-orange-500 text-white border border-orange-400";
+    return "bg-emerald-600 text-white border border-emerald-400";
   };
 
   const layers = [
@@ -145,7 +151,7 @@ export default function MovementTracker() {
               key={entity.id}
               onClick={() => handleSelectEntity(entity)}
               className={`p-4 border-b border-border/50 cursor-pointer transition-all ${
-                selectedEntity?.id === entity.id ? "bg-slate-800/70 border-l-4 shadow-inner" : "hover:bg-slate-800/30 border-l-4 border-l-transparent"
+                selectedEntity?.id === entity.id ? "bg-slate-700/60 border-l-4 shadow-inner" : "hover:bg-slate-800/30 border-l-4 border-l-transparent"
               }`}
               style={{ borderLeftColor: selectedEntity?.id === entity.id ? getDrugColor(entity.category) : "transparent" }}
             >
@@ -191,19 +197,29 @@ export default function MovementTracker() {
               onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
             >
-              <Map mapStyle={MAP_STYLE} reuseMaps style={{ opacity: 0.65, mixBlendMode: 'screen' }}>
+              <Map mapStyle={MAP_STYLE} reuseMaps style={{ opacity: 0.4 }}>
                 {/* Pulse Animation for Last Known Physical Node */}
                 {syntheticHops.length > 0 && (
                   <Marker longitude={syntheticHops[2].lng} latitude={syntheticHops[2].lat}>
-                    <div className="relative flex h-8 w-8 items-center justify-center -translate-x-1/2 -translate-y-1/2">
-                      <span 
-                        className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
-                        style={{ backgroundColor: getDrugColor(selectedEntity!.category) }}
-                      />
-                      <span 
-                        className="relative inline-flex h-3 w-3 rounded-full"
-                        style={{ backgroundColor: getDrugColor(selectedEntity!.category), boxShadow: `0 0 10px ${getDrugColor(selectedEntity!.category)}` }}
-                      />
+                    <div className="relative flex h-32 w-32 items-center justify-center -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                      {/* Concentric Radar Rings */}
+                      <span className="absolute h-[25%] w-[25%] animate-ping rounded-full opacity-60 border-2" style={{ borderColor: '#f97316' }} />
+                      <span className="absolute h-[50%] w-[50%] animate-ping rounded-full opacity-40 border-2" style={{ borderColor: '#f97316', animationDelay: '0.3s' }} />
+                      <span className="absolute h-[75%] w-[75%] animate-ping rounded-full opacity-20 border-2" style={{ borderColor: '#f97316', animationDelay: '0.6s' }} />
+                      <span className="absolute h-[100%] w-[100%] rounded-full opacity-10 bg-orange-500 animate-pulse" />
+                      
+                      {/* Core Node */}
+                      <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white" style={{ backgroundColor: '#f97316', boxShadow: `0 0 20px 4px #f97316` }} />
+                      
+                      {/* Floating UI Tooltip */}
+                      <div className="absolute top-20 left-16 bg-[#0f172a]/90 backdrop-blur-md border border-slate-700/80 p-3 rounded-lg shadow-2xl shadow-orange-500/20 w-48 text-left z-50 pointer-events-none">
+                        <div className="text-[9px] text-slate-400 font-bold tracking-widest mb-1.5 flex items-center gap-1">
+                          <MapPinIcon className="h-3 w-3 text-orange-400" />
+                          EST. ADDRESS
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-200 leading-tight">123 NW 1st Ave, Miami, FL 33132</div>
+                        <div className="mt-2 text-[9px] font-bold tracking-widest bg-orange-500/10 text-orange-400 border border-orange-500/30 px-1.5 py-1 rounded inline-block">CONFIDENCE: 92%</div>
+                      </div>
                     </div>
                   </Marker>
                 )}
@@ -214,13 +230,30 @@ export default function MovementTracker() {
           {/* Map Overlay Header */}
           {selectedEntity && (
             <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
-              <div className="bg-slate-900/80 border border-slate-700 p-4 rounded shadow-2xl backdrop-blur-md pointer-events-auto min-w-[280px]">
-                <div className="text-[9px] text-muted-foreground mb-1 tracking-widest font-bold">TRACKING ACTIVE TARGET</div>
-                <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-                  {selectedEntity.alias}
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: getDrugColor(selectedEntity.category), boxShadow: `0 0 8px ${getDrugColor(selectedEntity.category)}` }}></div>
-                </h1>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">LAST PING: {new Date(selectedEntity.date).toLocaleString()}</p>
+              <div className="bg-slate-900/80 border border-slate-700 p-4 rounded shadow-2xl backdrop-blur-md pointer-events-auto min-w-[350px] flex justify-between gap-6">
+                <div>
+                  <div className="text-[9px] text-muted-foreground mb-1 tracking-widest font-bold">TRACKING ACTIVE TARGET</div>
+                  <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2 whitespace-nowrap">
+                    {selectedEntity.alias}
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: getDrugColor(selectedEntity.category), boxShadow: `0 0 8px ${getDrugColor(selectedEntity.category)}` }}></div>
+                  </h1>
+                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">LAST PING: {new Date(selectedEntity.date).toLocaleString()}</p>
+                </div>
+                <div className="flex flex-col items-end w-32 border-l border-slate-700/50 pl-4">
+                  <div className="text-[8px] text-slate-500 tracking-widest font-bold mb-1 flex items-center gap-1"><Activity className="h-2 w-2" /> NETWORK PACKET ANALYSIS</div>
+                  <div className="w-full h-8 mt-auto opacity-70 flex items-end">
+                    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                      <path d="M0,30 L10,15 L20,35 L30,5 L40,25 L50,10 L60,30 L70,15 L80,35 L90,10 L100,20" fill="none" stroke="#22d3ee" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                      <path d="M0,40 L0,30 L10,15 L20,35 L30,5 L40,25 L50,10 L60,30 L70,15 L80,35 L90,10 L100,20 L100,40 Z" fill="url(#grad)" stroke="none" />
+                      <defs>
+                        <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.4" />
+                          <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div className="bg-slate-900/80 border border-slate-700 p-4 rounded shadow-2xl backdrop-blur-md flex gap-8 text-xs pointer-events-auto">
                 <div>
@@ -252,7 +285,16 @@ export default function MovementTracker() {
                 <span className="px-2 py-0.5 rounded bg-slate-800 text-[8px] text-slate-400 border border-slate-700">SIGINT</span>
               </div>
               <p className="text-sm text-slate-300 leading-relaxed font-sans">{selectedEntity.evidence}</p>
-              <div className="mt-auto pt-4 border-t border-slate-800 flex justify-between items-center text-[9px] text-slate-500">
+              
+              <div className="mt-auto pt-4 flex justify-center">
+                <div className="relative w-full max-w-[240px] rounded overflow-hidden border border-slate-700/50 shadow-inner group cursor-pointer bg-black/50 p-1">
+                  <div className="absolute inset-0 bg-cyan-500/10 group-hover:bg-transparent transition-colors z-10 mix-blend-color pointer-events-none" />
+                  <div className="absolute inset-x-0 top-0 bg-slate-900/90 text-[8px] text-slate-400 p-1 text-center font-bold tracking-widest border-b border-slate-700/50 z-20 pointer-events-none">CRYPTO-ESCROW LEDGER</div>
+                  <img src="/crypto_ledger.jpg" alt="Escrow Ledger" className="w-full h-auto opacity-80 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              <div className="mt-auto pt-3 border-t border-slate-800 flex justify-between items-center text-[9px] text-slate-500">
                 <span>LOGGED: {new Date().toLocaleTimeString()}</span>
                 <span>ID: {selectedEntity.id.split('-')[1]}</span>
               </div>
@@ -263,22 +305,57 @@ export default function MovementTracker() {
                 <Radio className="h-4 w-4 text-slate-400" /> DIGITAL FOOTPRINT
               </h3>
               
-              <div className="absolute top-5 right-5 flex items-end gap-0.5 h-6">
-                {/* Mock Sparkline Graph */}
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="w-1 bg-cyan-500/50 rounded-t-sm" style={{ height: `${20 + Math.random() * 80}%` }} />
-                ))}
+              <div className="absolute top-5 right-5 flex flex-col items-end">
+                <div className="flex items-end gap-0.5 h-6 mb-1">
+                  {/* Mock Sparkline Graph */}
+                  {[...Array(12)].map((_, i) => (
+                    <div key={i} className="w-1 bg-cyan-500/50 rounded-t-sm" style={{ height: `${20 + Math.random() * 80}%` }} />
+                  ))}
+                </div>
+                <span className="text-[7px] text-slate-500 uppercase tracking-widest">24H COMMS</span>
               </div>
 
-              <div className="grid grid-cols-[100px_1fr] gap-y-3 text-xs flex-1">
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">WALLET</span>
-                <span className="text-cyan-400 truncate bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{selectedEntity.wallet}</span>
-                
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">PGP FINGER</span>
-                <span className="text-emerald-400 truncate bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">{selectedEntity.pgp}</span>
-                
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">COMMS</span>
-                <span className="text-purple-400 truncate bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">{selectedEntity.comms}</span>
+              <div className="flex-1 mt-4 relative w-full h-full min-h-[140px]">
+                <svg className="absolute inset-0 w-full h-full" overflow="visible">
+                  {/* Edges */}
+                  <line x1="30%" y1="20%" x2="70%" y2="50%" stroke="#22d3ee" strokeWidth="1.5" strokeOpacity="0.4" strokeDasharray="4 2" />
+                  <line x1="30%" y1="80%" x2="70%" y2="50%" stroke="#a855f7" strokeWidth="1.5" strokeOpacity="0.4" />
+                  <line x1="70%" y1="50%" x2="85%" y2="30%" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.4" />
+                  <line x1="70%" y1="50%" x2="85%" y2="70%" stroke="#10b981" strokeWidth="1.5" strokeOpacity="0.4" />
+                  
+                  {/* Wallet Node */}
+                  <g transform="translate(calc(30% - 40px), calc(20% - 10px))">
+                    <rect width="80" height="20" rx="4" fill="#0f172a" stroke="#22d3ee" strokeOpacity="0.5" />
+                    <circle cx="-10" cy="10" r="4" fill="#22d3ee" />
+                    <text x="40" y="14" textAnchor="middle" fill="#22d3ee" fontSize="9" fontFamily="monospace">{selectedEntity.wallet.substring(0, 12)}</text>
+                  </g>
+                  <text x="30%" y="8%" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">WALLET</text>
+
+                  {/* Comms Node */}
+                  <g transform="translate(calc(30% - 40px), calc(80% - 10px))">
+                    <rect width="80" height="20" rx="4" fill="#0f172a" stroke="#a855f7" strokeOpacity="0.5" />
+                    <circle cx="-10" cy="10" r="4" fill="#a855f7" />
+                    <text x="40" y="14" textAnchor="middle" fill="#a855f7" fontSize="9" fontFamily="monospace">{selectedEntity.comms.substring(0, 12)}</text>
+                  </g>
+                  <text x="30%" y="98%" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">COMMS</text>
+
+                  {/* PGP Node (Central) */}
+                  <g transform="translate(calc(70% - 60px), calc(50% - 14px))">
+                    <rect width="120" height="28" rx="6" fill="#10b981" fillOpacity="0.1" stroke="#10b981" strokeOpacity="0.6" />
+                    <text x="60" y="18" textAnchor="middle" fill="#10b981" fontSize="10" fontFamily="monospace" fontWeight="bold">{selectedEntity.pgp.substring(0, 16)}</text>
+                  </g>
+                  <text x="70%" y="35%" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">PGP FINGERPRINT</text>
+
+                  {/* Sub-nodes */}
+                  <g transform="translate(calc(85% - 20px), calc(30% - 8px))">
+                    <rect width="40" height="16" rx="3" fill="#0f172a" stroke="#10b981" strokeOpacity="0.4" />
+                    <text x="20" y="11" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">WDP ID</text>
+                  </g>
+                  <g transform="translate(calc(85% - 20px), calc(70% - 8px))">
+                    <rect width="40" height="16" rx="3" fill="#0f172a" stroke="#10b981" strokeOpacity="0.4" />
+                    <text x="20" y="11" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">PGP ID</text>
+                  </g>
+                </svg>
               </div>
             </div>
 
@@ -288,10 +365,21 @@ export default function MovementTracker() {
               </h3>
               <div className="flex flex-col gap-3 flex-1 justify-center">
                 {syntheticHops.map((hop, i) => (
-                  <div key={i} className="flex items-center text-xs w-full">
-                    <span className="text-slate-300 font-semibold whitespace-nowrap">{hop.name}</span>
-                    <div className="flex-grow mx-3 border-b border-dotted border-slate-700/70 relative top-[4px]"></div>
-                    <span className="text-slate-500 font-mono whitespace-nowrap tracking-tight">{hop.lat.toFixed(4)}, {hop.lng.toFixed(4)}</span>
+                  <div key={i} className="flex flex-col w-full mb-1">
+                    <div className="flex items-end text-xs w-full gap-2">
+                      <span className="text-slate-300 font-semibold whitespace-nowrap">{hop.name}</span>
+                      {hop.name.includes("Transit") && (
+                        <div className="relative h-3 w-3 mr-1 mb-0.5 flex items-center justify-center">
+                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 bg-yellow-400"></span>
+                           <svg className="w-3 h-3 text-yellow-300 relative drop-shadow-[0_0_3px_rgba(253,224,71,0.8)]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </div>
+                      )}
+                      <div className="flex-grow border-b-2 border-dotted border-slate-600/50 mb-1"></div>
+                      <span className="text-slate-400 font-mono whitespace-nowrap tracking-tight">{hop.lat.toFixed(4)}, {hop.lng.toFixed(4)}</span>
+                    </div>
+                    {hop.description && (
+                      <span className="text-[10px] text-slate-500 font-medium italic mt-1">{hop.description}</span>
+                    )}
                   </div>
                 ))}
               </div>

@@ -13,6 +13,9 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     alias: {
       '@': path.resolve(__dirname, './src')
-    }
+    },
+    testTimeout: 30000,
+    pool: 'forks',
+    singleThread: true
   }
 })

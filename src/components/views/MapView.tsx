@@ -16,19 +16,18 @@ import { PathStyleExtension } from "@deck.gl/extensions";
 import Supercluster from "supercluster";
 import { useDebounce } from "use-debounce";
 import { mapPinsData, type MapPin } from "@/lib/mockData";
-import { getDrugColor } from "@/lib/utils";
-
+import { getDrugColor, DRUG_CATEGORY_COLORS } from "@/lib/utils";
 
 import { useAppStore } from "@/lib/store";
 import EvidenceDrawer from "@/components/ui/EvidenceDrawer";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const drugCategories = [
-  { name: "Opioids/Fentanyl", color: "#FF4500", icon: "💊" },
-  { name: "Stimulants", color: "#00FFFF", icon: "⚡" },
-  { name: "Cannabis", color: "#39FF14", icon: "🌿" },
-  { name: "Psychedelics", color: "#B026FF", icon: "🔮" },
-  { name: "Prescription/Other", color: "#FFD700", icon: "💉" },
+  { name: "Opioids/Fentanyl", color: DRUG_CATEGORY_COLORS["Opioids/Fentanyl"], icon: "💊" },
+  { name: "Stimulants", color: DRUG_CATEGORY_COLORS.Stimulants, icon: "⚡" },
+  { name: "Cannabis", color: DRUG_CATEGORY_COLORS.Cannabis, icon: "🌿" },
+  { name: "Psychedelics", color: DRUG_CATEGORY_COLORS.Psychedelics, icon: "🔮" },
+  { name: "Prescription/Other", color: DRUG_CATEGORY_COLORS["Prescription/Other"], icon: "💉" },
 ];
 
 const allDates = Array.from(new Set(mapPinsData.map((p) => p.date))).sort();
@@ -163,8 +162,12 @@ export default function MapView() {
 
     sc.load(geojsonFeatures);
 
+    // Use viewport bounds instead of global bounds to prevent cluster flicker
     const bounds = [
-      -180, -85, 180, 85 // global bounds by default to prevent disappearing points before interaction
+      debouncedViewState.longitude - 180 / Math.pow(2, debouncedViewState.zoom),
+      debouncedViewState.latitude - 85 / Math.pow(2, debouncedViewState.zoom),
+      debouncedViewState.longitude + 180 / Math.pow(2, debouncedViewState.zoom),
+      debouncedViewState.latitude + 85 / Math.pow(2, debouncedViewState.zoom),
     ];
 
     const cl = sc.getClusters(bounds as any, Math.floor(debouncedViewState.zoom));

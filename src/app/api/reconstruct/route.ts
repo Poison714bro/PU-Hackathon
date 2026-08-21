@@ -1,9 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import path from "path";
 
-export async function POST(request: Request) {
+// Simple API auth check
+function checkAuth(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  const apiSecret = process.env.API_SECRET_KEY;
+  
+  if (!apiSecret || process.env.ENABLE_API_AUTH !== 'true') {
+    return true; // Auth disabled in development
+  }
+  
+  return authHeader === `Bearer ${apiSecret}`;
+}
+
+export async function POST(request: NextRequest) {
+  // Check authentication
+  if (!checkAuth(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let transport: StdioClientTransport | null = null;
   
   try {
@@ -24,8 +41,14 @@ export async function POST(request: Request) {
       entityId = 'ent-001';
     }
 
-    const pythonPath = path.join(process.cwd(), 'darknet-intel-mcp', 'venv', 'Scripts', 'python.exe');
-    const serverScript = path.join(process.cwd(), 'darknet-intel-mcp', 'server.py');
+    // Use environment variables for Python path (with fallback for Windows)
+    const pythonPath = process.env.MCP_PYTHON_PATH 
+      ? path.join(process.cwd(), process.env.MCP_PYTHON_PATH)
+      : path.join(process.cwd(), 'darknet-intel-mcp', 'venv', 'Scripts', 'python.exe');
+    
+    const serverScript = process.env.MCP_SERVER_SCRIPT
+      ? path.join(process.cwd(), process.env.MCP_SERVER_SCRIPT)
+      : path.join(process.cwd(), 'darknet-intel-mcp', 'server.py');
 
     transport = new StdioClientTransport({
       command: pythonPath,

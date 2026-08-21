@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import ReactFlow, { Background, MarkerType } from "reactflow";
 import "reactflow/dist/style.css";
+import { SOURCE_STREAM_COLORS } from "@/lib/utils";
 
 const MOCK_CANDIDATES = [
   {
@@ -78,15 +79,17 @@ const MOCK_CANDIDATES = [
   }
 ];
 
+const blockchainColor = SOURCE_STREAM_COLORS.Blockchain;
+
 const getMiniGraphNodes = (aliasA: string, aliasB: string) => [
   { id: "A", position: { x: 30, y: 30 }, data: { label: aliasA }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
   { id: "B", position: { x: 30, y: 130 }, data: { label: aliasB }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
-  { id: "C", position: { x: 180, y: 80 }, data: { label: "bc1q9h...x4k2\n$48,200" }, style: { background: "#10b981", color: "#070a10", border: "none", borderRadius: "8px", fontSize: "9px", fontWeight: "bold", width: 100 } },
+  { id: "C", position: { x: 180, y: 80 }, data: { label: "bc1q9h...x4k2\n$48,200" }, style: { background: blockchainColor, color: "#070a10", border: "none", borderRadius: "8px", fontSize: "9px", fontWeight: "bold", width: 100 } },
 ];
 
 const miniGraphEdges = [
-  { id: "e1", source: "A", target: "C", animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" }, style: { stroke: "#10b981" } },
-  { id: "e2", source: "B", target: "C", animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" }, style: { stroke: "#10b981" } },
+  { id: "e1", source: "A", target: "C", animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: blockchainColor }, style: { stroke: blockchainColor } },
+  { id: "e2", source: "B", target: "C", animated: true, markerEnd: { type: MarkerType.ArrowClosed, color: blockchainColor }, style: { stroke: blockchainColor } },
 ];
 
 export default function EntityResolution() {

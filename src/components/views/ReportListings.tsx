@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowLeft, Search, ShieldAlert, Download, PlusCircle, CheckSquare, ExternalLink } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { DRUG_CATEGORY_COLORS, PLATFORM_COLORS } from "@/lib/utils";
 
 const PLATFORMS = ["Hydra Market", "AlphaBay Reborn", "Versus Market", "Dread Forum"];
 const FLAGS = [
@@ -35,13 +36,7 @@ const listingsData = Array.from({ length: 40 }, (_, i) => ({
   scraped: `${Math.floor(Math.random() * 23 + 1)}h ago`,
 }));
 
-const CATEGORY_COLORS: Record<string, string> = {
-  "Opioids/Fentanyl": "#FF4500",
-  Stimulants: "#00FFFF",
-  Cannabis: "#39FF14",
-  Psychedelics: "#B026FF",
-  "Prescription/Other": "#FFD700",
-};
+const CATEGORY_COLORS: Record<string, string> = DRUG_CATEGORY_COLORS;
 
 export default function ReportListings() {
   const setActiveView = useAppStore((s) => s.setActiveView);

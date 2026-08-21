@@ -17,23 +17,23 @@ import {
   FileText,
 } from "lucide-react";
 import { graphNodesData, graphEdgesData, mapPinsData, type GraphNodeData, type MapPin } from "@/lib/mockData";
-import { getRiskColor, getRiskLabel, getDrugColor } from "@/lib/utils";
+import { getRiskColor, getRiskLabel, getDrugColor, getNodeTypeColors, getSuspectRoleColors, NODE_TYPE_COLORS, SUSPECT_ROLE_COLORS } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 
 const nodeTypeConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
-  username: { icon: User, color: "#00d4ff", label: "Username / Alias" },
-  wallet: { icon: Wallet, color: "#f97316", label: "Crypto Wallet" },
-  email: { icon: Mail, color: "#a78bfa", label: "Email Address" },
-  pgp: { icon: Key, color: "#fbbf24", label: "PGP Key" },
-  listing: { icon: ShoppingBag, color: "#f43f5e", label: "Marketplace Listing" },
+  username: { icon: User, color: NODE_TYPE_COLORS.username.color, label: "Username / Alias" },
+  wallet: { icon: Wallet, color: NODE_TYPE_COLORS.wallet.color, label: "Crypto Wallet" },
+  email: { icon: Mail, color: NODE_TYPE_COLORS.email.color, label: "Email Address" },
+  pgp: { icon: Key, color: NODE_TYPE_COLORS.pgp.color, label: "PGP Key" },
+  listing: { icon: ShoppingBag, color: NODE_TYPE_COLORS.listing.color, label: "Marketplace Listing" },
 };
 
 const roleConfig: Record<string, { label: string; color: string }> = {
-  supplier: { label: "Supplier", color: "#ef4444" },
-  dealer: { label: "Dealer", color: "#f97316" },
-  buyer: { label: "Buyer", color: "#3b82f6" },
-  courier: { label: "Courier", color: "#a855f7" },
-  unknown: { label: "Unknown", color: "#64748b" },
+  supplier: { label: SUSPECT_ROLE_COLORS.supplier.label, color: SUSPECT_ROLE_COLORS.supplier.color },
+  dealer: { label: SUSPECT_ROLE_COLORS.dealer.label, color: SUSPECT_ROLE_COLORS.dealer.color },
+  buyer: { label: SUSPECT_ROLE_COLORS.buyer.label, color: SUSPECT_ROLE_COLORS.buyer.color },
+  courier: { label: SUSPECT_ROLE_COLORS.courier.label, color: SUSPECT_ROLE_COLORS.courier.color },
+  unknown: { label: SUSPECT_ROLE_COLORS.unknown.label, color: SUSPECT_ROLE_COLORS.unknown.color },
 };
 
 interface EvidenceDrawerProps {

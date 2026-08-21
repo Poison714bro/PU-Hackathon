@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { ArrowLeft, Wallet, ExternalLink, ArrowRight } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { SOURCE_STREAM_COLORS } from "@/lib/utils";
 
 const sankeyStages = [
-  { label: "DARKNET ESCROW", color: "#a855f7", items: ["Hydra Escrow", "AlphaBay Multi-Sig", "Versus FE Wallet"], totalBTC: 42.8 },
-  { label: "MIXING SERVICES", color: "#f59e0b", items: ["Wasabi CoinJoin", "Samourai Whirlpool", "Tornado Cash (ETH)"], totalBTC: 38.2 },
-  { label: "CENTRALIZED EXCHANGES", color: "#10b981", items: ["Binance Hot Wallet", "Kraken Deposit", "KuCoin OTC Desk"], totalBTC: 31.6 },
+  { label: "DARKNET ESCROW", color: SOURCE_STREAM_COLORS.Darknet, items: ["Hydra Escrow", "AlphaBay Multi-Sig", "Versus FE Wallet"], totalBTC: 42.8 },
+  { label: "MIXING SERVICES", color: SOURCE_STREAM_COLORS.Blockchain, items: ["Wasabi CoinJoin", "Samourai Whirlpool", "Tornado Cash (ETH)"], totalBTC: 38.2 },
+  { label: "CENTRALIZED EXCHANGES", color: SOURCE_STREAM_COLORS.OSINT, items: ["Binance Hot Wallet", "Kraken Deposit", "KuCoin OTC Desk"], totalBTC: 31.6 },
 ];
 
 const ledgerData = [
