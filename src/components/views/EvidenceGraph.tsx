@@ -25,7 +25,7 @@ import {
   Hash,
 } from "lucide-react";
 import { graphNodesData, graphEdgesData, mapPinsData, type GraphNodeData } from "@/lib/mockData";
-import { getRiskColor, getDrugColor, getNodeTypeColors, getSuspectRoleColors, getEdgeCriteriaColors, NODE_TYPE_COLORS, SUSPECT_ROLE_COLORS, EDGE_CRITERIA_COLORS } from "@/lib/utils";
+import { getRiskColor, getDrugColor } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 
 // Dynamic imports for React Flow (SSR incompatible)
@@ -49,31 +49,37 @@ const Handle = dynamic(
   { ssr: false }
 ) as React.ComponentType<any>;
 
-// Node type config from centralized colors
+// ── Forensic Palette Taxonomy ──
+// Steel Blue: #4A90E2
+// Muted Amber: #D69E2E
+// Threat Red: #E53E3E
+// Chalk White: #E2E8F0
+// Tactical Slate: #0f111a
+
 const nodeTypeConfig: Record<
   string,
   { icon: React.ElementType; color: string; label: string }
 > = {
-  username: { icon: User, color: NODE_TYPE_COLORS.username.color, label: NODE_TYPE_COLORS.username.label },
-  wallet: { icon: Wallet, color: NODE_TYPE_COLORS.wallet.color, label: NODE_TYPE_COLORS.wallet.label },
-  email: { icon: Mail, color: NODE_TYPE_COLORS.email.color, label: NODE_TYPE_COLORS.email.label },
-  pgp: { icon: Key, color: NODE_TYPE_COLORS.pgp.color, label: NODE_TYPE_COLORS.pgp.label },
-  listing: { icon: ShoppingBag, color: NODE_TYPE_COLORS.listing.color, label: NODE_TYPE_COLORS.listing.label },
+  username: { icon: User, color: "#4A90E2", label: "IDENTITY" },
+  wallet: { icon: Wallet, color: "#D69E2E", label: "WALLET" },
+  email: { icon: Mail, color: "#E2E8F0", label: "EMAIL" },
+  pgp: { icon: Key, color: "#E2E8F0", label: "PGP KEY" },
+  listing: { icon: ShoppingBag, color: "#E53E3E", label: "LISTING" },
 };
 
-const roleConfig: Record<string, { label: string; color: string; badge: string }> = {
-  supplier: { label: SUSPECT_ROLE_COLORS.supplier.label, color: SUSPECT_ROLE_COLORS.supplier.color, badge: SUSPECT_ROLE_COLORS.supplier.badge },
-  dealer: { label: SUSPECT_ROLE_COLORS.dealer.label, color: SUSPECT_ROLE_COLORS.dealer.color, badge: SUSPECT_ROLE_COLORS.dealer.badge },
-  buyer: { label: SUSPECT_ROLE_COLORS.buyer.label, color: SUSPECT_ROLE_COLORS.buyer.color, badge: SUSPECT_ROLE_COLORS.buyer.badge },
-  courier: { label: SUSPECT_ROLE_COLORS.courier.label, color: SUSPECT_ROLE_COLORS.courier.color, badge: SUSPECT_ROLE_COLORS.courier.badge },
-  unknown: { label: SUSPECT_ROLE_COLORS.unknown.label, color: SUSPECT_ROLE_COLORS.unknown.color, badge: SUSPECT_ROLE_COLORS.unknown.badge },
+const roleConfig: Record<string, { label: string; color: string }> = {
+  supplier: { label: "SUPPLIER", color: "#E53E3E" },
+  dealer: { label: "DEALER", color: "#D69E2E" },
+  buyer: { label: "BUYER", color: "#4A90E2" },
+  courier: { label: "COURIER", color: "#E2E8F0" },
+  unknown: { label: "UNKNOWN", color: "#718096" },
 };
 
 // Edge criteria definitions
 const edgeCriteria = [
-  { key: "financial", label: EDGE_CRITERIA_COLORS.financial.label, icon: Zap, color: EDGE_CRITERIA_COLORS.financial.color },
-  { key: "communication", label: EDGE_CRITERIA_COLORS.communication.label, icon: MessageSquare, color: EDGE_CRITERIA_COLORS.communication.color },
-  { key: "infrastructure", label: EDGE_CRITERIA_COLORS.infrastructure.label, icon: Shield, color: EDGE_CRITERIA_COLORS.infrastructure.color },
+  { key: "financial", label: "FINANCIAL", icon: Zap, color: "#D69E2E" },
+  { key: "communication", label: "COMMUNICATION", icon: MessageSquare, color: "#E2E8F0" },
+  { key: "infrastructure", label: "INFRASTRUCTURE", icon: Shield, color: "#4A90E2" },
 ];
 
 const methodToCriteria: Record<string, string> = {
@@ -322,9 +328,8 @@ export default function EvidenceGraph() {
 
     const nodes: any[] = includedNodes.map((node) => {
       const isTarget = node.id === targetId;
-      const targetNodeSize = 64; // h-16 w-16 = 64px
-      const regularNodeSize = 48; // h-12 w-12 = 48px
-      const widthOffset = isTarget ? targetNodeSize / 2 : regularNodeSize / 2;
+      // Exact center offset for 12w (48px) and 16w (64px) nodes
+      const widthOffset = isTarget ? 32 : 24; 
       const x = computedPositions[node.id].x - widthOffset;
       const y = computedPositions[node.id].y - widthOffset;
       
@@ -363,8 +368,9 @@ export default function EvidenceGraph() {
           selectedNode && (edge.source === selectedNode.id || edge.target === selectedNode.id);
 
         const criteria = getEdgeCriteria(edge);
-        const criteriaColors = getEdgeCriteriaColors(criteria);
-        const edgeColor = criteriaColors.color;
+        let edgeColor = "#E2E8F0"; // default communication
+        if (criteria === "financial") edgeColor = "#D69E2E";
+        if (criteria === "infrastructure") edgeColor = "#4A90E2";
 
         const isHighlighted = isConnectedToSelected;
 

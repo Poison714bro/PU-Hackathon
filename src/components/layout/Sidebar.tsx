@@ -91,10 +91,6 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
       className={`relative flex flex-col border-r border-border bg-[var(--sidebar-bg)] transition-all duration-300 ease-in-out ${
         collapsed ? "w-[68px]" : "w-[260px]"
       }`}
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath stroke='%231e293b' stroke-width='1' stroke-opacity='0.4' d='M20 20 L60 60 M60 20 L20 60'/%3E%3Ccircle cx='20' cy='20' r='2.5' fill='%23334155' fill-opacity='0.6'/%3E%3Ccircle cx='60' cy='60' r='2.5' fill='%23334155' fill-opacity='0.6'/%3E%3Ccircle cx='60' cy='20' r='2.5' fill='%23334155' fill-opacity='0.6'/%3E%3Ccircle cx='20' cy='60' r='2.5' fill='%23334155' fill-opacity='0.6'/%3E%3C/g%3E%3C/svg%3E")`,
-        backgroundSize: "80px 80px",
-      }}
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border px-4">
@@ -138,7 +134,7 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
             >
               <Icon
                 className={`h-[16px] w-[16px] shrink-0 transition-colors ${
-                  isActive ? "text-cyan-400 fill-cyan-400/30 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" : "text-muted-foreground group-hover:text-foreground"
+                  isActive ? "text-cyan-400 fill-cyan-400/20" : "text-muted-foreground group-hover:text-foreground"
                 }`}
               />
               {!collapsed && <span>{item.label}</span>}

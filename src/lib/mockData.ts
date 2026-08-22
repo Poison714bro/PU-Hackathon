@@ -335,14 +335,12 @@ export const activityChartData = [
   { name: "Sun", listings: 49, transactions: 31, alerts: 6 },
 ];
 
-import { DRUG_CATEGORY_COLORS } from "./colors";
-
 export const drugDistributionData = [
-  { name: "Opioids/Fentanyl", value: 38, color: DRUG_CATEGORY_COLORS["Opioids/Fentanyl"] },
-  { name: "Stimulants", value: 27, color: DRUG_CATEGORY_COLORS.Stimulants },
-  { name: "Cannabis", value: 18, color: DRUG_CATEGORY_COLORS.Cannabis },
-  { name: "Psychedelics", value: 10, color: DRUG_CATEGORY_COLORS.Psychedelics },
-  { name: "Prescription/Other", value: 7, color: DRUG_CATEGORY_COLORS["Prescription/Other"] },
+  { name: "Opioids/Fentanyl", value: 38, color: "#FF4500" },
+  { name: "Stimulants", value: 27, color: "#00FFFF" },
+  { name: "Cannabis", value: 18, color: "#39FF14" },
+  { name: "Psychedelics", value: 10, color: "#B026FF" },
+  { name: "Prescription/Other", value: 7, color: "#FFD700" },
 ];
 
 export const cryptoVolumeData = [

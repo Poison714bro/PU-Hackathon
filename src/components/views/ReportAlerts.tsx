@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ArrowLeft, Bell, Check, ArrowUpRight, XCircle, Clock, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { SEVERITY_COLORS } from "@/lib/utils";
 
 interface AlertItem {
   id: string;
@@ -29,7 +28,12 @@ const alertsRaw: AlertItem[] = [
   { id: "ALT-010", severity: "low", title: "Prescription Drug Price Drop", description: "NightOwl_Pharm dropped Xanax prices 40% suggesting new bulk supply source.", payload: "ALERT: Price anomaly detected.\nVendor: NightOwl_Pharm\nProduct: Xanax 2mg Pfizer Bars\nPrevious price: $5.00/unit\nNew price: $3.00/unit (40% drop)\n\nSuggests new bulk supply chain — possibly Indian pharmaceutical diversion.", timestamp: "1d ago", source: "Versus Market", acknowledged: false },
 ];
 
-const SEV_COLORS = SEVERITY_COLORS;
+const SEV_COLORS: Record<string, { dot: string; bg: string; border: string; text: string }> = {
+  critical: { dot: "bg-red-500", bg: "bg-red-500/5", border: "border-l-red-500", text: "text-red-400" },
+  high: { dot: "bg-orange-500", bg: "bg-orange-500/5", border: "border-l-orange-500", text: "text-orange-400" },
+  medium: { dot: "bg-yellow-500", bg: "bg-yellow-500/5", border: "border-l-yellow-500", text: "text-yellow-400" },
+  low: { dot: "bg-cyan-500", bg: "bg-cyan-500/5", border: "border-l-cyan-500", text: "text-primary" },
+};
 
 export default function ReportAlerts() {
   const setActiveView = useAppStore((s) => s.setActiveView);

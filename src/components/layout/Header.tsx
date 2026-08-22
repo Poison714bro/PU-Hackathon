@@ -162,12 +162,12 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
     <header className="flex h-14 items-center justify-between border-b border-border bg-[var(--header-bg)] px-6 backdrop-blur-xl">
       {/* Advanced Search */}
       <div className="flex flex-1 items-center gap-3">
-        <div className="relative max-w-md flex-1" ref={searchRef}>
+        <div className="relative max-w-lg flex-1" ref={searchRef}>
           <div
             className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-all duration-200 ${
               searchFocused
                 ? "border-primary/50 bg-slate-900/80 shadow-lg shadow-cyan-500/5"
-                : "border-border/50 bg-slate-900/10 opacity-60 hover:opacity-100 hover:bg-slate-900/30"
+                : "border-border bg-slate-900/20 opacity-70 hover:opacity-100 hover:bg-slate-900/40"
             }`}
           >
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />

@@ -3,7 +3,20 @@
 import { useState } from "react";
 import { ArrowLeft, Search, Eye, Clock, ChevronRight, Filter, ShieldAlert } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { STATUS_COLORS, RISK_COLORS } from "@/lib/utils";
+
+const STATUS_COLORS: Record<string, string> = {
+  Open: "text-primary bg-cyan-400/10 border-cyan-400/30",
+  "Preparing Brief": "text-amber-400 bg-amber-400/10 border-amber-400/30",
+  "Arrest Warrant": "text-red-400 bg-red-400/10 border-red-400/30",
+  Closed: "text-muted-foreground bg-slate-500/10 border-slate-500/30",
+};
+
+const RISK_COLORS: Record<string, string> = {
+  Critical: "text-red-400 bg-red-500/15 border-red-500/30",
+  High: "text-orange-400 bg-orange-500/15 border-orange-500/30",
+  Medium: "text-yellow-400 bg-yellow-500/15 border-yellow-500/30",
+  Low: "text-primary bg-cyan-500/15 border-primary/30",
+};
 
 const investigationsData = [
   { caseId: "INV-2026-001", target: "DarkPhoenix_77", agent: "Agent Torres", risk: "Critical", status: "Open", updated: "2 hours ago" },
