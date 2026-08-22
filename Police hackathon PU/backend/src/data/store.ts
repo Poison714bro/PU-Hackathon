@@ -1,0 +1,494 @@
+import { Entity, TimelineEvent, TrackerEntity } from '@/common/types';
+
+export interface MapPinData {
+  id: string;
+  lat: number;
+  lng: number;
+  city: string;
+  country: string;
+  drugCategory: string;
+  riskScore: number;
+  entityId: string;
+  date: string;
+  label: string;
+  quantityEst: string;
+  sourceType: string;
+}
+
+export interface GraphNodeData {
+  id: string;
+  label: string;
+  type: 'suspect' | 'wallet' | 'comms' | 'pgp' | 'market';
+  riskScore?: number;
+  category?: string;
+  status?: string;
+  walletBalance?: string;
+  details?: Record<string, any>;
+}
+
+export interface GraphEdgeData {
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  strength?: number;
+}
+
+export interface KanbanCard {
+  id: string;
+  title: string;
+  entityId: string;
+  priority: 'Critical' | 'High' | 'Medium' | 'Low';
+  assignedAgent: string;
+  updatedAt: string;
+  summary: string;
+  stage: 'Open' | 'Under Investigation' | 'Preparing Brief' | 'Arrest Warrant' | 'Closed';
+}
+
+export interface KanbanColumn {
+  id: string;
+  title: string;
+  cards: KanbanCard[];
+}
+
+export interface AlertItem {
+  id: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  payload: string;
+  timestamp: string;
+  source: string;
+  acknowledged: boolean;
+}
+
+export interface FeedItem {
+  id: string;
+  timestamp: string;
+  source: string;
+  category: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  summary: string;
+  entityId?: string;
+  rawSnippet: string;
+}
+
+export interface DataStore {
+  entities: Entity[];
+  timelineEvents: TimelineEvent[];
+  trackerData: TrackerEntity[];
+  mapPins: MapPinData[];
+  graphNodes: GraphNodeData[];
+  graphEdges: GraphEdgeData[];
+  kanbanColumns: KanbanColumn[];
+  alerts: AlertItem[];
+  feedItems: FeedItem[];
+  aliasMatches: Array<{
+    aliasA: string;
+    aliasB: string;
+    similarity: number;
+    matchingSignals: string[];
+    status: 'Verified' | 'Probable' | 'Investigating';
+  }>;
+}
+
+export const initialDataStore: DataStore = {
+  entities: [
+    {
+      id: 'ent-001',
+      primaryAlias: 'DarkPhoenix_77',
+      category: 'Opioids/Fentanyl',
+      colorHex: '#FF4500',
+      riskScore: 94,
+      status: 'Active',
+      firstSeen: '2024-03-12T08:00:00Z',
+      lastActive: '2026-08-17T14:32:00Z',
+      sources: ['Darknet', 'Blockchain', 'Encrypted Comms'],
+      identifiers: {
+        cryptoWallets: [
+          { address: 'bc1q9h52x4k2', currency: 'BTC', balanceUSD: 482000, isPrimary: true },
+          { address: '42xM7...p9L', currency: 'XMR', balanceUSD: 142000, isPrimary: false },
+        ],
+        pgpKeyFingerprint: {
+          keyId: 'F9B24A32',
+          fingerprint: 'F9B2 4A32 1109 E77A 3B62',
+          verified: true,
+        },
+        encryptedHandles: [
+          { platform: 'Tox', handle: '593A1B2C' },
+          { platform: 'Telegram', handle: '@Ghost_Supply' },
+        ],
+        knownAliases: [
+          { alias: 'ShadowPharm', platform: 'Hydra Market', firstSeen: '2023-11-04' },
+          { alias: 'BlueSkyDistro', platform: 'AlphaBay Reborn', firstSeen: '2025-01-12' },
+        ],
+      },
+      summary: 'High-volume Fentanyl distributor utilizing multi-sig escrows and Samourai Whirlpool mixing.',
+    },
+    {
+      id: 'ent-002',
+      primaryAlias: 'SnowFall_Direct',
+      category: 'Stimulants',
+      colorHex: '#00FFFF',
+      riskScore: 87,
+      status: 'Under Investigation',
+      firstSeen: '2024-07-20T10:15:00Z',
+      lastActive: '2026-08-15T11:45:22Z',
+      sources: ['Darknet', 'Encrypted Comms'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1qxl...9p4v', currency: 'BTC', balanceUSD: 310000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'B8C9D0E1', fingerprint: 'B8C9 D0E1 F2A3 B4C5', verified: true },
+        encryptedHandles: [{ platform: 'Signal', handle: 'Wickr:snowfall99' }],
+        knownAliases: [{ alias: 'CokeDirect_EU', platform: 'Versus Market', firstSeen: '2024-08-01' }],
+      },
+      summary: 'Colombian wholesale cocaine supplier operating direct delivery drops.',
+    },
+    {
+      id: 'ent-003',
+      primaryAlias: 'Ghost_Supply',
+      category: 'Cannabis',
+      colorHex: '#39FF14',
+      riskScore: 38,
+      status: 'Active',
+      firstSeen: '2025-06-18T11:30:00Z',
+      lastActive: '2026-08-16T13:45:00Z',
+      sources: ['Encrypted Comms', 'OSINT'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1q88...4k9x', currency: 'BTC', balanceUSD: 45000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'F2A3B4C5', fingerprint: 'F2A3 B4C5 D6E7 F8G9', verified: false },
+        encryptedHandles: [{ platform: 'Telegram', handle: '@ghost_cali' }],
+        knownAliases: [{ alias: 'CaliGreen_HQ', platform: 'Telegram', firstSeen: '2025-06-18' }],
+      },
+      summary: 'Wholesale West Coast cannabis distributor routing via automated Telegram bot channels.',
+    },
+    {
+      id: 'ent-004',
+      primaryAlias: 'S11kR0ad_Vendor',
+      category: 'Opioids/Fentanyl',
+      colorHex: '#FF4500',
+      riskScore: 91,
+      status: 'Active',
+      firstSeen: '2023-11-02T14:05:00Z',
+      lastActive: '2026-08-16T10:12:44Z',
+      sources: ['Darknet', 'Blockchain', 'OSINT'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1q55...8y6w', currency: 'BTC', balanceUSD: 520000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'E1F2A3B4', fingerprint: '3D7C A992 5E11 8K20', verified: true },
+        encryptedHandles: [{ platform: 'Session', handle: 'ProtonMail:s11k@proton.me' }],
+        knownAliases: [{ alias: 'SilkLegacy', platform: 'Versus Market', firstSeen: '2023-11-02' }],
+      },
+      summary: 'High-level synthetic opioid pill pressing syndicate linked to Phoenix AZ seizure.',
+    },
+    {
+      id: 'ent-005',
+      primaryAlias: 'ChemKing2026',
+      category: 'Stimulants',
+      colorHex: '#00FFFF',
+      riskScore: 82,
+      status: 'Active',
+      firstSeen: '2024-01-10T09:00:00Z',
+      lastActive: '2026-08-15T14:30:00Z',
+      sources: ['Darknet', 'OSINT'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1q22...3n8c', currency: 'BTC', balanceUSD: 240000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'C9D0E1F2', fingerprint: 'C9D0 E1F2 A3B4 C5D6', verified: true },
+        encryptedHandles: [{ platform: 'Jabber', handle: 'Jabber:chem@exploit.im' }],
+        knownAliases: [{ alias: 'CrystalCook_NL', platform: 'Dread Forum', firstSeen: '2024-01-10' }],
+      },
+      summary: 'European synthetic methamphetamine synthesis and precursor distribution network.',
+    },
+    {
+      id: 'ent-006',
+      primaryAlias: 'AcidWizard420',
+      category: 'Psychedelics',
+      colorHex: '#B026FF',
+      riskScore: 45,
+      status: 'Active',
+      firstSeen: '2024-07-04T12:00:00Z',
+      lastActive: '2026-08-15T09:10:00Z',
+      sources: ['Darknet'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1qm7...2kx9', currency: 'BTC', balanceUSD: 68000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: '1A2B3C4D', fingerprint: '1A2B 3C4D 5E6F 7G8H', verified: true },
+        encryptedHandles: [{ platform: 'Session', handle: 'Session:05a8f9' }],
+        knownAliases: [{ alias: 'GammaGoblin_Sub', platform: 'Versus Market', firstSeen: '2024-07-04' }],
+      },
+      summary: 'High-purity LSD blotter distribution operating out of Amsterdam fulfillment hubs.',
+    },
+    {
+      id: 'ent-007',
+      primaryAlias: 'NightOwl_Pharm',
+      category: 'Prescription/Other',
+      colorHex: '#FFD700',
+      riskScore: 65,
+      status: 'Migrated',
+      firstSeen: '2024-05-18T16:00:00Z',
+      lastActive: '2026-08-16T08:00:15Z',
+      sources: ['Darknet', 'Encrypted Comms'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1qrr...5m2z', currency: 'BTC', balanceUSD: 115000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'D0E1F2A3', fingerprint: 'D0E1 F2A3 B4C5 D6E7', verified: true },
+        encryptedHandles: [{ platform: 'Telegram', handle: 'Telegram:@nightowl_rx' }],
+        knownAliases: [{ alias: 'PharmaOwl', platform: 'AlphaBay Reborn', firstSeen: '2024-05-18' }],
+      },
+      summary: 'Counterfeit prescription benzodiazepines and diverted pharmaceutical supplies.',
+    },
+    {
+      id: 'ent-008',
+      primaryAlias: 'CartelPlug_X',
+      category: 'Stimulants',
+      colorHex: '#00FFFF',
+      riskScore: 96,
+      status: 'Under Investigation',
+      firstSeen: '2024-02-14T11:00:00Z',
+      lastActive: '2026-08-17T02:15:00Z',
+      sources: ['Darknet', 'Blockchain'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1qxx...1y2z', currency: 'BTC', balanceUSD: 890000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'C5D6E7F8', fingerprint: 'C5D6 E7F8 G9H0 I1J2', verified: true },
+        encryptedHandles: [{ platform: 'Session', handle: 'Session:abc123def' }],
+        knownAliases: [{ alias: 'DeadDrop_Sinaloa', platform: 'Hydra Market', firstSeen: '2024-02-14' }],
+      },
+      summary: 'Wholesale multi-kilo cocaine dead-drop broker operating across Mexico and US border ports.',
+    },
+    {
+      id: 'ent-009',
+      primaryAlias: 'White_Dragon_HK',
+      category: 'Stimulants',
+      colorHex: '#00FFFF',
+      riskScore: 95,
+      status: 'Under Investigation',
+      firstSeen: '2024-09-01T04:00:00Z',
+      lastActive: '2026-08-17T16:15:20Z',
+      sources: ['Blockchain', 'OSINT'],
+      identifiers: {
+        cryptoWallets: [{ address: 'bc1qvv...9g0h', currency: 'BTC', balanceUSD: 1450000, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'G9H0I1J2', fingerprint: 'G9H0 I1J2 K3L4 M5N6', verified: true },
+        encryptedHandles: [{ platform: 'Session', handle: 'Session:999888777' }],
+        knownAliases: [{ alias: 'Dragon_Precursors', platform: 'ClearWeb Forum', firstSeen: '2024-09-01' }],
+      },
+      summary: 'Asian precursor chemical supplier funding darknet operations through cross-chain Monero swaps.',
+    },
+    {
+      id: 'ent-010',
+      primaryAlias: 'MethLabMike',
+      category: 'Stimulants',
+      colorHex: '#00FFFF',
+      riskScore: 89,
+      status: 'Seized',
+      firstSeen: '2023-06-15T04:20:00Z',
+      lastActive: '2026-07-02T05:00:00Z',
+      sources: ['Darknet', 'Blockchain', 'OSINT'],
+      identifiers: {
+        cryptoWallets: [{ address: '1A1zP1eP5QGefi2D', currency: 'BTC', balanceUSD: 0, isPrimary: true }],
+        pgpKeyFingerprint: { keyId: 'A3B4C5D6', fingerprint: 'A3B4 C5D6 E7F8 G9H0', verified: true },
+        encryptedHandles: [{ platform: 'Tox', handle: 'Tox:9876ABCD' }],
+        knownAliases: [{ alias: 'IceKing_West', platform: 'Versus Market', firstSeen: '2023-06-15' }],
+      },
+      summary: 'Riverside CA meth synthesis facility dismantled in joint DEA operation; funds seized.',
+    },
+  ],
+
+  timelineEvents: [
+    {
+      eventId: 'tl-001',
+      entityId: 'ent-001',
+      timestamp: '2024-03-12T08:00:00Z',
+      eventType: 'GENESIS',
+      title: 'PGP Key Registered on Keyserver',
+      description: 'Key F9B24A32 generated and published to keys.openpgp.org. Used across all market profiles.',
+      monthlyVolumeUSD: 0,
+      activeListingsCount: 0,
+      artifactHash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+    },
+    {
+      eventId: 'tl-002',
+      entityId: 'ent-001',
+      timestamp: '2024-06-01T00:00:00Z',
+      eventType: 'FINANCIAL_SPIKE',
+      title: 'First Significant Revenue Month',
+      description: 'Wallet bc1q9h...x4k2 received 0.8 BTC across 12 transactions.',
+      monthlyVolumeUSD: 35000,
+      activeListingsCount: 4,
+      artifactHash: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
+    },
+    {
+      eventId: 'tl-003',
+      entityId: 'ent-001',
+      timestamp: '2025-01-15T00:00:00Z',
+      eventType: 'MARKET_MIGRATION',
+      title: 'Expanded to Dread Forum for Direct Deals',
+      description: 'Vendor advertised direct-deal Telegram channel on Dread /d/DarkPhoenix.',
+      monthlyVolumeUSD: 52000,
+      activeListingsCount: 8,
+      artifactHash: 'c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4',
+    },
+    {
+      eventId: 'tl-004',
+      entityId: 'ent-001',
+      timestamp: '2025-11-20T00:00:00Z',
+      eventType: 'FINANCIAL_SPIKE',
+      title: 'Massive Volume Spike — Holiday Season',
+      description: 'Transaction volume surged to $89K in November. 14 CoinJoin rounds detected.',
+      monthlyVolumeUSD: 89000,
+      activeListingsCount: 12,
+      artifactHash: 'd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5',
+    },
+    {
+      eventId: 'tl-005',
+      entityId: 'ent-001',
+      timestamp: '2026-06-02T14:30:00Z',
+      eventType: 'OPSEC_FAILURE',
+      title: 'Telegram Channel Metadata Leak',
+      description: 'Telegram channel @Ghost_Supply briefly exposed admin panel metadata.',
+      monthlyVolumeUSD: 72000,
+      activeListingsCount: 10,
+      artifactHash: 'e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6',
+    },
+  ],
+
+  trackerData: [
+    { id: 'NEX-001', date: '2026-08-15T08:22:14Z', alias: 'DarkPhoenix_77', category: 'Opioids/Fentanyl', risk: 94, status: 'Active', source: 'Darknet', platform: 'Hydra Market', evidence: 'Bulk Fentanyl HCL 500g Escrow', wallet: 'bc1q9h52x4k2', pgp: 'F9B24A321109E77A', comms: 'Tox:593A1B2C', location: 'Miami, FL', lat: 25.7617, lng: -80.1918 },
+    { id: 'NEX-002', date: '2026-08-15T09:10:00Z', alias: 'AcidWizard420', category: 'Psychedelics', risk: 45, status: 'Active', source: 'Darknet', platform: 'Versus Market', evidence: 'LSD 250ug Blotters 100x pack', wallet: 'bc1qm7...2kx9', pgp: '1A2B3C4D5E6F7G8H', comms: 'Session:05a8f9', location: 'Amsterdam, NL', lat: 52.3676, lng: 4.9041 },
+    { id: 'NEX-003', date: '2026-08-15T11:45:22Z', alias: 'SnowFall_Direct', category: 'Stimulants', risk: 87, status: 'Under Investigation', source: 'Encrypted', platform: 'Wickr Monitor', evidence: 'Colombian Cocaine 1kg Brick Direct', wallet: 'bc1qxl...9p4v', pgp: 'B8C9D0E1F2A3B4C5', comms: 'Wickr:snowfall99', location: 'Bogota, COL', lat: 4.711, lng: -74.0721 },
+    { id: 'NEX-004', date: '2026-08-15T14:30:00Z', alias: 'ChemKing2026', category: 'Stimulants', risk: 82, status: 'Active', source: 'Darknet', platform: 'Dread Forum', evidence: 'Forum post: Methamphetamine crystal clear batch', wallet: 'bc1q22...3n8c', pgp: 'C9D0E1F2A3B4C5D6', comms: 'Jabber:chem@exploit.im', location: 'Berlin, GER', lat: 52.52, lng: 13.405 },
+    { id: 'NEX-005', date: '2026-08-16T08:00:15Z', alias: 'NightOwl_Pharm', category: 'Prescription/Other', risk: 65, status: 'Migrated', source: 'Darknet', platform: 'AlphaBay Reborn', evidence: 'Listing: Xanax 2mg Pfizer Bars 500x', wallet: 'bc1qrr...5m2z', pgp: 'D0E1F2A3B4C5D6E7', comms: 'Telegram:@nightowl_rx', location: 'London, UK', lat: 51.5074, lng: -0.1278 },
+  ],
+
+  mapPins: [
+    { id: 'pin-001', lat: 25.7617, lng: -80.1918, city: 'Miami', country: 'USA', drugCategory: 'Opioids/Fentanyl', riskScore: 94, entityId: 'ent-001', date: '2026-08-17', label: 'DarkPhoenix_77', quantityEst: '500g Pure HCL', sourceType: 'Darknet' },
+    { id: 'pin-002', lat: 52.3676, lng: 4.9041, city: 'Amsterdam', country: 'NLD', drugCategory: 'Psychedelics', riskScore: 45, entityId: 'ent-006', date: '2026-08-16', label: 'AcidWizard420', quantityEst: '100x Sheets', sourceType: 'Versus' },
+    { id: 'pin-003', lat: 4.711, lng: -74.0721, city: 'Bogota', country: 'COL', drugCategory: 'Stimulants', riskScore: 87, entityId: 'ent-002', date: '2026-08-15', label: 'SnowFall_Direct', quantityEst: '1kg Brick', sourceType: 'Encrypted' },
+    { id: 'pin-004', lat: 52.52, lng: 13.405, city: 'Berlin', country: 'DEU', drugCategory: 'Stimulants', riskScore: 82, entityId: 'ent-005', date: '2026-08-15', label: 'ChemKing2026', quantityEst: '500g Crystal', sourceType: 'Dread' },
+    { id: 'pin-005', lat: 34.0522, lng: -118.2437, city: 'Los Angeles', country: 'USA', drugCategory: 'Cannabis', riskScore: 38, entityId: 'ent-003', date: '2026-08-16', label: 'Ghost_Supply', quantityEst: '10lb Bulk Tins', sourceType: 'Telegram' },
+  ],
+
+  graphNodes: [
+    { id: 'ent-001', label: 'DarkPhoenix_77', type: 'suspect', riskScore: 94, category: 'Opioids/Fentanyl', status: 'Active' },
+    { id: 'w-001', label: 'bc1q9h...x4k2', type: 'wallet', walletBalance: '12.4 BTC' },
+    { id: 'pgp-001', label: 'F9B2 4A32', type: 'pgp' },
+    { id: 'comms-001', label: 'Tox:593A1B2C', type: 'comms' },
+    { id: 'mkt-001', label: 'Hydra Market', type: 'market' },
+  ],
+
+  graphEdges: [
+    { id: 'e-1', source: 'ent-001', target: 'w-001', label: 'Primary Deposit' },
+    { id: 'e-2', source: 'ent-001', target: 'pgp-001', label: 'Signed Key' },
+    { id: 'e-3', source: 'ent-001', target: 'comms-001', label: 'Direct Comms' },
+    { id: 'e-4', source: 'ent-001', target: 'mkt-001', label: 'Vendor Store' },
+  ],
+
+  kanbanColumns: [
+    {
+      id: 'col-open',
+      title: 'Open Intake',
+      cards: [
+        {
+          id: 'INV-2026-001',
+          title: 'DarkPhoenix_77 Syndicate Takedown',
+          entityId: 'ent-001',
+          priority: 'Critical',
+          assignedAgent: 'Agent Torres',
+          updatedAt: '2 hours ago',
+          summary: 'Tracking Miami multi-sig wallet peel chains and fentanyl import batches.',
+          stage: 'Open',
+        },
+      ],
+    },
+    {
+      id: 'col-brief',
+      title: 'Preparing Brief',
+      cards: [
+        {
+          id: 'INV-2026-004',
+          title: 'Fent_Press_Ops Lab Subpoena',
+          entityId: 'ent-004',
+          priority: 'Critical',
+          assignedAgent: 'Agent Nakamura',
+          updatedAt: '8 hours ago',
+          summary: 'Compiling forum hardware receipts and M30 pill press mold shipping tracking.',
+          stage: 'Preparing Brief',
+        },
+      ],
+    },
+    {
+      id: 'col-warrant',
+      title: 'Arrest Warrant',
+      cards: [
+        {
+          id: 'INV-2026-002',
+          title: 'S11kR0ad_Vendor Phoenix Raid',
+          entityId: 'ent-004',
+          priority: 'Critical',
+          assignedAgent: 'Agent Rivera',
+          updatedAt: '4 hours ago',
+          summary: 'Federal warrant active for Camelback Rd facility search and seizure.',
+          stage: 'Arrest Warrant',
+        },
+      ],
+    },
+    {
+      id: 'col-closed',
+      title: 'Closed / Seized',
+      cards: [
+        {
+          id: 'INV-2026-010',
+          title: 'MethLabMike Riverside Lab Seizure',
+          entityId: 'ent-010',
+          priority: 'Critical',
+          assignedAgent: 'Agent Torres',
+          updatedAt: '3 days ago',
+          summary: 'Completed. 12kg meth, P2P equipment and $340K crypto seized.',
+          stage: 'Closed',
+        },
+      ],
+    },
+  ],
+
+  alerts: [
+    { id: 'ALT-001', severity: 'critical', title: 'Fentanyl Bulk Listing Detected', description: 'DarkPhoenix_77 posted a new bulk fentanyl listing on Hydra Market with international shipping enabled.', payload: 'LST-8829: 500g Fentanyl HCL 99% Pure. Escrow: Multi-Sig.', timestamp: '2h ago', source: 'Hydra Market', acknowledged: false },
+    { id: 'ALT-002', severity: 'critical', title: 'DEA Flagged Wallet Active', description: 'BTC wallet bc1qm7...2kx9 received 8.7 BTC from mixer outputs.', payload: 'FinCEN SAR #2026-SW-11294: 14 incoming txs from Wasabi CoinJoin.', timestamp: '3h ago', source: 'Chainalysis', acknowledged: false },
+    { id: 'ALT-003', severity: 'high', title: 'Known Vendor Re-emergence', description: 'S11kR0ad_Vendor re-registered on AlphaBay Reborn with confirmed PGP key reuse.', payload: 'Matched fingerprint: 3D7C A992 5E11 8K20.', timestamp: '6h ago', source: 'OSINT', acknowledged: false },
+  ],
+
+  feedItems: [
+    { id: 'feed-001', timestamp: '2026-08-17T14:32:00Z', source: 'AlphaBay Reborn', category: 'Opioids/Fentanyl', severity: 'critical', summary: 'Bulk Fentanyl HCL 500g listed by DarkPhoenix_77.', entityId: 'ent-001', rawSnippet: 'Listing #8829 | 0.5 BTC / 100g | Multi-sig' },
+    { id: 'feed-002', timestamp: '2026-08-17T12:11:00Z', source: 'Blockchain', category: 'Financial', severity: 'high', summary: '1.24 BTC swept into Binance deposit cluster.', entityId: 'ent-001', rawSnippet: 'Tx 0x8a92b...e4f12a -> Binance Hot Wallet #4' },
+    { id: 'feed-003', timestamp: '2026-08-17T09:45:00Z', source: 'Telegram', category: 'Cannabis', severity: 'low', summary: '@Ghost_Supply posted updated California wholesale menu.', entityId: 'ent-003', rawSnippet: 'Fresh drop: Biscotti & Gelato 41 tins in stock.' },
+  ],
+
+  aliasMatches: [
+    {
+      aliasA: 'ShadowPharm',
+      aliasB: 'BlueSkyDistro',
+      similarity: 0.94,
+      matchingSignals: ['Identical PGP Fingerprint F9B2...E77A', 'Shared Tox Handle 593A1B2C', 'Common BTC Wallet bc1q9h...x4k2'],
+      status: 'Verified',
+    },
+    {
+      aliasA: 'DP_Supply',
+      aliasB: 'DarkPhoenix_77',
+      similarity: 0.89,
+      matchingSignals: ['Stylometry phrasing overlap 91%', 'Matching Telegram channel reference'],
+      status: 'Verified',
+    },
+  ],
+};
+
+class StoreManager {
+  private data: DataStore;
+
+  constructor() {
+    this.data = JSON.parse(JSON.stringify(initialDataStore));
+  }
+
+  getStore(): DataStore {
+    return this.data;
+  }
+
+  resetStore(): void {
+    this.data = JSON.parse(JSON.stringify(initialDataStore));
+  }
+}
+
+export const storeManager = new StoreManager();

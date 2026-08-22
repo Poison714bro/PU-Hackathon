@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { 
   CheckCircle2, 
   Key, 
@@ -13,71 +13,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  ShieldCheck
+  ShieldCheck,
+  SearchX
 } from "lucide-react";
 import ReactFlow, { Background, MarkerType } from "reactflow";
 import "reactflow/dist/style.css";
 
-const MOCK_CANDIDATES = [
-  {
-    aliasA: {
-      name: "ShadowPharm",
-      market: "Hydra Market",
-      pgp: "F9B2 4A32 1109 E77A",
-      joinDate: "2023-11-04",
-      description: "Premium grade pharmaceuticals. Stealth packaging guaranteed. Reship policy applies to tracked orders only.",
-    },
-    aliasB: {
-      name: "BlueSkyDistro",
-      market: "AlphaBay Reborn",
-      pgp: "F9B2 4A32 1109 E77A", 
-      joinDate: "2025-01-12",
-      description: "Top tier pharms. Stealth packaging guaranteed. Reship policy applies to tracked orders only. No refunds.",
-    },
-    confidence: "96%",
-    nlpScore: "89%",
-    visionScore: "94%"
-  },
-  {
-    aliasA: {
-      name: "ChemCartel",
-      market: "Dream Market",
-      pgp: "A12F 99B2 C441 D882",
-      joinDate: "2021-05-18",
-      description: "Bulk orders only. Escrow accepted.",
-    },
-    aliasB: {
-      name: "BulkChemz",
-      market: "Torrez Market",
-      pgp: "A12F 99B2 C441 D882",
-      joinDate: "2023-08-22",
-      description: "Bulk RC supplier. Escrow only.",
-    },
-    confidence: "91%",
-    nlpScore: "82%",
-    visionScore: "88%"
-  },
-  {
-    aliasA: {
-      name: "KushKing",
-      market: "White House Market",
-      pgp: "88D2 11F4 EEE1 90A1",
-      joinDate: "2022-09-10",
-      description: "Best buds on the east coast. Next day delivery.",
-    },
-    aliasB: {
-      name: "EastCoastBuds",
-      market: "Versus Project",
-      pgp: "88D2 11F4 EEE1 90A1",
-      joinDate: "2024-02-05",
-      description: "Premium buds. East coast. NDD available.",
-    },
-    confidence: "98%",
-    nlpScore: "95%",
-    visionScore: "97%"
-  }
-];
-
+import { api } from "@/lib/apiClient";
+import { EmptyState } from "@/components/ui/EmptyState";
 const getMiniGraphNodes = (aliasA: string, aliasB: string) => [
   { id: "A", position: { x: 30, y: 30 }, data: { label: aliasA }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
   { id: "B", position: { x: 30, y: 130 }, data: { label: aliasB }, style: { background: "#070a10", color: "#fff", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "9px", width: 100 } },
@@ -90,6 +33,21 @@ const miniGraphEdges = [
 ];
 
 export default function EntityResolution() {
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    api.intelligence.aliasMatches().then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.data) {
+        setCandidates(res.data);
+      }
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const [matchStatus, setMatchStatus] = useState<"pending" | "merged" | "rejected">("pending");
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -101,13 +59,33 @@ export default function EntityResolution() {
   };
 
   const handleNext = () => {
-    if (currentIndex < MOCK_CANDIDATES.length - 1) {
+    if (currentIndex < candidates.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setMatchStatus("pending");
     }
   };
 
-  const currentCandidate = MOCK_CANDIDATES[currentIndex];
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 bg-[var(--background)]">
+        <div className="h-64 w-full max-w-4xl animate-pulse rounded-xl bg-slate-900/50" />
+      </div>
+    );
+  }
+
+  if (candidates.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 bg-[var(--background)] text-muted-foreground">
+        <EmptyState
+          icon={SearchX}
+          title="No Candidates Found"
+          description="The AI Entity Resolution engine has not identified any aliases that exceed the match confidence threshold."
+        />
+      </div>
+    );
+  }
+
+  const currentCandidate = candidates[currentIndex];
   const miniGraphNodes = getMiniGraphNodes(currentCandidate.aliasA.name, currentCandidate.aliasB.name);
 
   return (
@@ -125,12 +103,12 @@ export default function EntityResolution() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
              <span className="text-xs font-bold text-white uppercase tracking-wider">
-               Reviewing Candidate {currentIndex + 1} of {MOCK_CANDIDATES.length}
+               Reviewing Candidate {currentIndex + 1} of {candidates.length}
              </span>
              <button 
                 onClick={handleNext}
-                disabled={currentIndex === MOCK_CANDIDATES.length - 1}
-                className={`p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${currentIndex === MOCK_CANDIDATES.length - 1 ? 'text-slate-700 cursor-not-allowed' : 'text-muted-foreground hover:text-white'}`}
+                disabled={currentIndex === candidates.length - 1}
+                className={`p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${currentIndex === candidates.length - 1 ? 'text-slate-700 cursor-not-allowed' : 'text-muted-foreground hover:text-white'}`}
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

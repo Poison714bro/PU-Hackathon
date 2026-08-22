@@ -336,3 +336,11 @@ body {
 .play-active {
   animation: playPulse 0.8s ease-in-out infinite;
 }
+
+/* Z-Index Standardization Layer */
+.z-map { z-index: 10; }
+.z-sidebar { z-index: 40; }
+.z-header { z-index: 40; }
+.z-drawer { z-index: 50; }
+.z-modal { z-index: 60; }
+.z-dropdown { z-index: 70; }

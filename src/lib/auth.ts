@@ -1,52 +1,49 @@
 import { User } from './store';
+import { api } from './apiClient';
 
-// A mock hash function for demonstration
-const mockHash = (str: string) => btoa(str);
+/**
+ * Role mapping from backend roles to frontend roles.
+ * Backend uses: ADMIN, INVESTIGATOR, ANALYST
+ * Frontend uses: Admin, Agent, Analyst
+ */
+const ROLE_MAP: Record<string, User['role']> = {
+  ADMIN: 'Admin',
+  INVESTIGATOR: 'Agent',
+  ANALYST: 'Analyst',
+  SUPERVISOR: 'Agent',
+};
 
-export const MOCK_USERS: Array<User & { passwordHash: string }> = [
-  {
-    id: "user-agent-1",
-    username: "agent_smith",
-    email: "smith@cyberintel.gov",
-    role: "Agent",
-    clearanceLevel: 1,
-    passwordHash: mockHash("password123"),
-  },
-  {
-    id: "user-analyst-1",
-    username: "analyst_doe",
-    email: "doe@cyberintel.gov",
-    role: "Analyst",
-    clearanceLevel: 2,
-    passwordHash: mockHash("password123"),
-  },
-  {
-    id: "user-admin-1",
-    username: "admin_root",
-    email: "root@cyberintel.gov",
-    role: "Admin",
-    clearanceLevel: 3,
-    passwordHash: mockHash("password123"),
-  },
-];
+/**
+ * Clearance level mapping from backend roles.
+ * Admin → 3 (full access), Agent/Investigator → 2, Analyst → 1
+ */
+const CLEARANCE_MAP: Record<string, User['clearanceLevel']> = {
+  ADMIN: 3,
+  INVESTIGATOR: 2,
+  SUPERVISOR: 2,
+  ANALYST: 1,
+};
 
-export async function authenticate(usernameOrEmail: string, passwordPlain: string): Promise<{ success: boolean; user?: User; error?: string }> {
-  // Simulate network latency
-  await new Promise(resolve => setTimeout(resolve, 1500));
+export async function authenticate(
+  usernameOrEmail: string,
+  passwordPlain: string
+): Promise<{ success: boolean; user?: User; token?: string; error?: string }> {
+  const result = await api.auth.login(usernameOrEmail, passwordPlain);
 
-  const userRecord = MOCK_USERS.find(
-    (u) => u.username === usernameOrEmail || u.email === usernameOrEmail
-  );
-
-  if (!userRecord) {
-    return { success: false, error: "Invalid credentials" };
+  if (!result.ok || !result.data) {
+    return { success: false, error: result.error || 'Invalid credentials' };
   }
 
-  if (userRecord.passwordHash !== mockHash(passwordPlain)) {
-    return { success: false, error: "Invalid credentials" };
-  }
+  const { token, user: backendUser } = result.data;
 
-  // Strip passwordHash before returning to client state
-  const { passwordHash, ...safeUser } = userRecord;
-  return { success: true, user: safeUser };
+  // Map backend user shape to frontend User interface
+  const frontendUser: User = {
+    id: backendUser.id,
+    username: backendUser.username,
+    email: `${backendUser.username}@cyberintel.gov`,
+    clearanceLevel: CLEARANCE_MAP[backendUser.role] || 1,
+    role: ROLE_MAP[backendUser.role] || 'Analyst',
+  };
+
+  return { success: true, user: frontendUser, token };
 }

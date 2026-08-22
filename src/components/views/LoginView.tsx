@@ -26,8 +26,8 @@ export default function LoginView() {
     
     setLoading(false);
 
-    if (result.success && result.user) {
-      login(result.user);
+    if (result.success && result.user && result.token) {
+      login(result.user, result.token);
     } else {
       setError(result.error || "Authentication failed.");
     }

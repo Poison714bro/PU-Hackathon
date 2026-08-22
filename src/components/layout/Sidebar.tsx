@@ -88,7 +88,7 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
 
   return (
     <aside
-      className={`relative flex flex-col border-r border-border bg-[var(--sidebar-bg)] transition-all duration-300 ease-in-out ${
+      className={`z-sidebar relative flex flex-col border-r border-border bg-[var(--sidebar-bg)] transition-all duration-300 ease-in-out ${
         collapsed ? "w-[68px]" : "w-[260px]"
       }`}
     >

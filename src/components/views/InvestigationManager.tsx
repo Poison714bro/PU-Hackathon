@@ -22,6 +22,8 @@ import {
   FileDown,
 } from "lucide-react";
 import { kanbanData, type KanbanColumn, type InvestigationCard } from "@/lib/mockData";
+import { motion } from "framer-motion";
+import { useKanbanBoard } from "@/hooks/useKanbanBoard";
 
 const priorityConfig: Record<
   string,
@@ -51,10 +53,13 @@ function InvestigationCardComponent({ card, onDragStart }: { card: Investigation
   const priority = priorityConfig[card.priority];
 
   return (
-    <div
+    <motion.div
+      layoutId={card.id}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
       draggable
-      onDragStart={(e) => onDragStart(e, card.id)}
-      className="kanban-card group animate-fade-in"
+      onDragStart={(e: any) => onDragStart(e, card.id)}
+      className="glass-card group relative p-4 cursor-pointer hover:shadow-lg transition-all"
     >
       <div className="mb-2 flex items-center justify-between">
         <span className="font-mono text-[10px] text-slate-600">{card.id}</span>
@@ -98,81 +103,29 @@ function InvestigationCardComponent({ card, onDragStart }: { card: Investigation
       </div>
       {/* Hover actions */}
       <div className="mt-2 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button className="flex-1 rounded bg-cyan-500/10 py-1 text-center text-[10px] text-primary hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+        <button className="flex flex-1 items-center justify-center gap-1 rounded bg-slate-800/80 py-1 text-[9px] font-bold text-white hover:bg-slate-700/80">
+          <Eye className="h-3 w-3" />
           View
         </button>
-        <button className="flex-1 rounded bg-slate-800/50 py-1 text-center text-[10px] text-muted-foreground hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-          Edit
-        </button>
-        <button className="rounded bg-slate-800/50 px-2 py-1 text-muted-foreground hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+        <button className="flex flex-1 items-center justify-center gap-1 rounded bg-slate-800/80 py-1 text-[9px] font-bold text-white hover:bg-slate-700/80">
           <MoreHorizontal className="h-3 w-3" />
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 export default function InvestigationManager() {
-  const [columns, setColumns] = useState<KanbanColumn[]>(kanbanData);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [draggedCard, setDraggedCard] = useState<string | null>(null);
-
-  const handleDragStart = (e: React.DragEvent, cardId: string) => {
-    setDraggedCard(cardId);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = (e: React.DragEvent, targetColumnId: string) => {
-    e.preventDefault();
-    if (!draggedCard) return;
-
-    setColumns((prev) => {
-      const newColumns = prev.map((col) => ({
-        ...col,
-        cards: col.cards.filter((c) => c.id !== draggedCard),
-      }));
-
-      let movedCard: InvestigationCard | undefined;
-      for (const col of prev) {
-        const found = col.cards.find((c) => c.id === draggedCard);
-        if (found) {
-          movedCard = found;
-          break;
-        }
-      }
-
-      if (movedCard) {
-        const targetCol = newColumns.find((c) => c.id === targetColumnId);
-        if (targetCol) {
-          targetCol.cards.push(movedCard);
-        }
-      }
-
-      return newColumns;
-    });
-    setDraggedCard(null);
-  };
-
-  const filteredColumns = columns.map((col) => ({
-    ...col,
-    cards: col.cards.filter(
-      (card) =>
-        !searchQuery ||
-        card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        card.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        card.tags.some((t) =>
-          t.toLowerCase().includes(searchQuery.toLowerCase())
-        ) ||
-        card.id.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  }));
-
-  const totalCards = columns.reduce((sum, col) => sum + col.cards.length, 0);
+  const {
+    searchQuery,
+    setSearchQuery,
+    draggedCard,
+    handleDragStart,
+    handleDragOver,
+    handleDrop,
+    filteredColumns,
+    totalCards,
+  } = useKanbanBoard(kanbanData);
 
   return (
     <div className="grid-bg flex h-full flex-col overflow-hidden">

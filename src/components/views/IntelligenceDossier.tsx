@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   ShieldAlert, 
   Download, 
@@ -15,26 +15,44 @@ import {
   Hash, 
   Eye, 
   Clock,
-  ArrowRight
+  ArrowRight,
+  Archive,
+  Database
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore } from "@/lib/store";
+import { api } from "@/lib/apiClient";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function IntelligenceDossier() {
   const activeEntityId = useAppStore((s) => s.activeEntityId);
-  const [loading, setLoading] = useState(true);
+  const [dossier, setDossier] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Simulate data fetching for the dossier
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    async function loadDossier() {
+      if (!activeEntityId) return;
+      setLoading(true);
+      const res = await api.intelligence.dossier(activeEntityId);
+      if (cancelled) return;
+      if (res.ok && res.data) {
+        setDossier(res.data);
+      }
+      setLoading(false);
+    }
+    loadDossier();
+    return () => { cancelled = true; };
   }, [activeEntityId]);
 
   if (!activeEntityId) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#0B0F17] text-muted-foreground">
-        No entity selected.
+      <div className="flex h-full items-center justify-center bg-[var(--background)]">
+        <EmptyState
+          icon={Database}
+          title="No Entity Selected"
+          description="Select an entity from the map, graph, or investigations board to view their complete intelligence dossier."
+        />
       </div>
     );
   }
@@ -57,9 +75,13 @@ export default function IntelligenceDossier() {
     );
   }
 
-  // --- Mock Data based on Entity ---
-  const entityName = activeEntityId.startsWith("bc1") ? activeEntityId : `${activeEntityId}`;
-  
+  // --- Dynamic Data based on Entity ---
+  const entityName = dossier?.entity?.primaryAlias || activeEntityId;
+  const riskScore = dossier?.threatScore || 0;
+  const category = dossier?.entity?.category || "Unknown";
+  const source = "Intel System"; // Real backend doesn't explicitly return source, fallback
+  const firstDetected = dossier?.timeline?.[0]?.timestamp || "Unknown";
+  const lastActive = dossier?.timeline?.[dossier?.timeline?.length - 1]?.timestamp || "Unknown";
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -83,20 +105,20 @@ export default function IntelligenceDossier() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                   <span className="rounded bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                    Source: Darknet
+                    Source: {source}
                   </span>
                   <span className="rounded bg-[#FF4500]/10 px-2 py-1 text-[10px] font-semibold text-[#FF4500] uppercase tracking-wider">
-                    Category: Opioids/Fentanyl
+                    Category: {category}
                   </span>
                   <span className="rounded bg-slate-800 px-2 py-1 text-[10px] text-muted-foreground font-mono">
-                    First Detected: 2024-03-12
+                    First Detected: {firstDetected}
                   </span>
                   <span className="rounded bg-slate-800 px-2 py-1 text-[10px] text-muted-foreground font-mono">
-                    Last Active: 2026-08-17 14:32:00
+                    Last Active: {lastActive}
                   </span>
                 </div>
                 <div className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-semibold text-foreground">AI Summary:</span> High-volume Fentanyl distribution linked to multi-sig escrow wallets. Frequent vendor on AlphaBay Reborn. Shows sophisticated OPSEC with automated mixing services.
+                  <span className="font-semibold text-foreground">AI Summary:</span> {dossier?.entity?.description || "No AI summary available."}
                 </div>
               </div>
 
@@ -122,8 +144,8 @@ export default function IntelligenceDossier() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-white">94</span>
-                  <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest">Critical</span>
+                  <span className="text-2xl font-black text-white">{riskScore}</span>
+                  <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest">{dossier?.classification || "Unknown"}</span>
                 </div>
               </div>
             </div>
@@ -238,34 +260,15 @@ export default function IntelligenceDossier() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
-                  <tr className="transition-colors hover:bg-slate-800/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-                    <td className="py-3 pr-4 font-mono text-[10px]">2026-08-17 14:32</td>
-                    <td className="py-3 pr-4 font-semibold text-white">Bulk Listing Created</td>
-                    <td className="py-3 pr-4"><span className="text-primary">AlphaBay Reborn</span></td>
-                    <td className="py-3 pr-4 text-foreground">500g Fentanyl HCL</td>
-                    <td className="py-3 text-right font-bold text-red-500">+15</td>
-                  </tr>
-                  <tr className="transition-colors hover:bg-slate-800/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-                    <td className="py-3 pr-4 font-mono text-[10px]">2026-08-16 09:11</td>
-                    <td className="py-3 pr-4 font-semibold text-white">Wallet Sweep</td>
-                    <td className="py-3 pr-4"><span className="text-amber-400">Blockchain</span></td>
-                    <td className="py-3 pr-4 text-foreground">2.45 BTC to Mixing Service</td>
-                    <td className="py-3 text-right font-bold text-red-500">+20</td>
-                  </tr>
-                  <tr className="transition-colors hover:bg-slate-800/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-                    <td className="py-3 pr-4 font-mono text-[10px]">2026-08-14 22:05</td>
-                    <td className="py-3 pr-4 font-semibold text-white">Comms Intercept</td>
-                    <td className="py-3 pr-4"><span className="text-purple-400">Telegram</span></td>
-                    <td className="py-3 pr-4 text-foreground">&quot;Tracking number 1Z9...&quot;</td>
-                    <td className="py-3 text-right font-bold text-orange-400">+10</td>
-                  </tr>
-                  <tr className="transition-colors hover:bg-slate-800/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-                    <td className="py-3 pr-4 font-mono text-[10px]">2026-08-10 11:20</td>
-                    <td className="py-3 pr-4 font-semibold text-white">Key Rotation</td>
-                    <td className="py-3 pr-4"><span className="text-emerald-400">OSINT / Dread</span></td>
-                    <td className="py-3 pr-4 text-foreground">New PGP public key posted</td>
-                    <td className="py-3 text-right font-bold text-yellow-500">+5</td>
-                  </tr>
+                  {dossier?.timeline?.map((event: any, i: number) => (
+                    <tr key={i} className="transition-colors hover:bg-slate-800/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                      <td className="py-3 pr-4 font-mono text-[10px]">{event.timestamp.replace("T", " ")}</td>
+                      <td className="py-3 pr-4 font-semibold text-white">{event.eventType}</td>
+                      <td className="py-3 pr-4"><span className="text-primary">{event.source}</span></td>
+                      <td className="py-3 pr-4 text-foreground">{event.description}</td>
+                      <td className="py-3 text-right font-bold text-red-500">+{event.riskDelta || 0}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

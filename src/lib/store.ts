@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { setTokenAccessor } from "./apiClient";
 
 export interface FilterState {
   drugCategories: Set<string>;
@@ -23,6 +24,7 @@ export interface AppState {
   // Auth state
   isAuthenticated: boolean;
   currentUser: User | null;
+  token: string | null;
 
   // Selected entity (cross-view sync)
   selectedEntityId: string | null;
@@ -41,8 +43,9 @@ export interface AppState {
   filters: FilterState;
 
   // Actions
-  login: (user: User) => void;
+  login: (user: User, token: string) => void;
   logout: () => void;
+  setToken: (token: string | null) => void;
   selectEntity: (id: string, type: "pin" | "node", linkedIds?: string[]) => void;
   clearSelection: () => void;
   setActiveView: (view: AppState["activeView"]) => void;
@@ -83,100 +86,109 @@ const defaultFilters: FilterState = {
   contactMethods: new Set(ALL_CONTACT_METHODS),
 };
 
-export const useAppStore = create<AppState>((set) => ({
-  isAuthenticated: false,
-  currentUser: null,
-  selectedEntityId: null,
-  selectedEntityType: null,
-  activeEntityId: null,
-  highlightedIds: [],
-  activeView: "dashboard",
-  searchQuery: "",
-  filters: { ...defaultFilters },
+export const useAppStore = create<AppState>((set, get) => {
+  // Wire up the token accessor so apiClient can read the JWT without
+  // creating a circular import with the store module.
+  setTokenAccessor(() => get().token);
 
-  login: (user) => set({ isAuthenticated: true, currentUser: user }),
-  logout: () => set({ isAuthenticated: false, currentUser: null, activeView: "dashboard" }),
+  return {
+    isAuthenticated: false,
+    currentUser: null,
+    token: null,
+    selectedEntityId: null,
+    selectedEntityType: null,
+    activeEntityId: null,
+    highlightedIds: [],
+    activeView: "dashboard",
+    searchQuery: "",
+    filters: { ...defaultFilters },
 
-  selectEntity: (id, type, linkedIds = []) =>
-    set({
-      selectedEntityId: id,
-      selectedEntityType: type,
-      highlightedIds: linkedIds,
-    }),
+    login: (user, token) => set({ isAuthenticated: true, currentUser: user, token }),
+    logout: () => set({ isAuthenticated: false, currentUser: null, token: null, activeView: "dashboard" }),
+    setToken: (token) => set({ token }),
 
-  clearSelection: () =>
-    set({
-      selectedEntityId: null,
-      selectedEntityType: null,
-      highlightedIds: [],
-    }),
+    selectEntity: (id, type, linkedIds = []) =>
+      set({
+        selectedEntityId: id,
+        selectedEntityType: type,
+        highlightedIds: linkedIds,
+      }),
 
-  setActiveView: (view) => set({ activeView: view }),
+    clearSelection: () =>
+      set({
+        selectedEntityId: null,
+        selectedEntityType: null,
+        highlightedIds: [],
+      }),
 
-  setSearchQuery: (query) => set({ searchQuery: query }),
+    setActiveView: (view) => set({ activeView: view }),
 
-  navigateToEntity: (id, type, view) =>
-    set({
-      selectedEntityId: id,
-      selectedEntityType: type,
-      activeView: view,
-    }),
+    setSearchQuery: (query) => set({ searchQuery: query }),
 
-  openDossier: (entityId) => set({ activeEntityId: entityId, activeView: "dossier" }),
+    navigateToEntity: (id, type, view) =>
+      set({
+        selectedEntityId: id,
+        selectedEntityType: type,
+        activeView: view,
+      }),
 
-  toggleDrugCategory: (name) =>
-    set((state) => {
-      const next = new Set(state.filters.drugCategories);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return { filters: { ...state.filters, drugCategories: next } };
-    }),
+    openDossier: (entityId) => set({ activeEntityId: entityId, activeView: "dossier" }),
 
-  setOnlyDrugCategory: (name) =>
-    set((state) => ({
-      filters: { ...state.filters, drugCategories: new Set([name]) },
-      activeView: "dashboard",
-    })),
+    toggleDrugCategory: (name) =>
+      set((state) => {
+        const next = new Set(state.filters.drugCategories);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        return { filters: { ...state.filters, drugCategories: next } };
+      }),
 
-  toggleSourceStream: (source) =>
-    set((state) => {
-      const next = new Set(state.filters.sourceStreams);
-      if (next.has(source)) next.delete(source);
-      else next.add(source);
-      return { filters: { ...state.filters, sourceStreams: next } };
-    }),
+    setOnlyDrugCategory: (name) =>
+      set((state) => ({
+        filters: { ...state.filters, drugCategories: new Set([name]) },
+        activeView: "dashboard",
+      })),
 
-  setOnlySourceStream: (source) =>
-    set((state) => ({
-      filters: { ...state.filters, sourceStreams: new Set([source]) },
-      activeView: "dashboard",
-    })),
+    toggleSourceStream: (source) =>
+      set((state) => {
+        const next = new Set(state.filters.sourceStreams);
+        if (next.has(source)) next.delete(source);
+        else next.add(source);
+        return { filters: { ...state.filters, sourceStreams: next } };
+      }),
 
-  setDateRange: (range) =>
-    set((state) => ({
-      filters: { ...state.filters, dateRange: range },
-    })),
+    setOnlySourceStream: (source) =>
+      set((state) => ({
+        filters: { ...state.filters, sourceStreams: new Set([source]) },
+        activeView: "dashboard",
+      })),
 
-  setRiskRange: (range) =>
-    set((state) => ({
-      filters: { ...state.filters, riskRange: range },
-    })),
+    setDateRange: (range) =>
+      set((state) => ({
+        filters: { ...state.filters, dateRange: range },
+      })),
 
-  toggleSuspectRole: (role) =>
-    set((state) => {
-      const next = new Set(state.filters.suspectRoles);
-      if (next.has(role)) next.delete(role);
-      else next.add(role);
-      return { filters: { ...state.filters, suspectRoles: next } };
-    }),
+    setRiskRange: (range) =>
+      set((state) => ({
+        filters: { ...state.filters, riskRange: range },
+      })),
 
-  toggleContactMethod: (method) =>
-    set((state) => {
-      const next = new Set(state.filters.contactMethods);
-      if (next.has(method)) next.delete(method);
-      else next.add(method);
-      return { filters: { ...state.filters, contactMethods: next } };
-    }),
+    toggleSuspectRole: (role) =>
+      set((state) => {
+        const next = new Set(state.filters.suspectRoles);
+        if (next.has(role)) next.delete(role);
+        else next.add(role);
+        return { filters: { ...state.filters, suspectRoles: next } };
+      }),
 
-  resetFilters: () => set({ filters: { ...defaultFilters } }),
-}));
+    toggleContactMethod: (method) =>
+      set((state) => {
+        const next = new Set(state.filters.contactMethods);
+        if (next.has(method)) next.delete(method);
+        else next.add(method);
+        return { filters: { ...state.filters, contactMethods: next } };
+      }),
+
+    resetFilters: () => set({ filters: { ...defaultFilters } }),
+  };
+});
+

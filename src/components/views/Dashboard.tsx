@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,6 +15,7 @@ import {
   Activity,
   Zap,
   Download,
+  Loader2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -29,14 +31,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import {
-  kpiData,
-  feedData,
-  alertsData,
-  activityChartData,
-  drugDistributionData,
-  cryptoVolumeData,
-} from "@/lib/mockData";
+import { motion } from "framer-motion";
+import { api, type KpiData, type FeedItem, type ChartData } from "@/lib/apiClient";
 import {
   formatNumber,
   formatCurrency,
@@ -46,6 +42,21 @@ import {
   getTimeAgo,
 } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { DashboardFeed } from "@/components/dashboard/DashboardFeed";
+import { DashboardAlerts } from "@/components/dashboard/DashboardAlerts";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 // ── KPI Card ──
 function KpiCard({
@@ -67,9 +78,10 @@ function KpiCard({
 }) {
   const isPositive = trend >= 0;
   return (
-    <div
+    <motion.div
+      variants={itemVariants}
       onClick={onClick}
-      className={`glass-card group relative overflow-hidden p-5 ${glowClass} cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-lg`}
+      className={`glass-card group relative overflow-hidden p-6 ${glowClass} cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-lg`}
       style={{ '--kpi-accent': color } as React.CSSProperties}
     >
       {/* Background gradient accent */}
@@ -115,7 +127,7 @@ function KpiCard({
       <div className="mt-3 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 translate-y-1" style={{ color }}>
         View Report <ArrowUpRight className="h-3 w-3" />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -157,6 +169,91 @@ export default function Dashboard() {
   const openDossier = useAppStore((s) => s.openDossier);
   const setActiveView = useAppStore((s) => s.setActiveView);
   const currentUser = useAppStore((s) => s.currentUser);
+
+  const [loading, setLoading] = useState(true);
+  const [kpis, setKpis] = useState<KpiData | null>(null);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [charts, setCharts] = useState<ChartData | null>(null);
+  const [alerts, setAlerts] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      const [kpiRes, feedRes, chartRes, alertRes] = await Promise.all([
+        api.dashboard.kpis(),
+        api.dashboard.feed({ limit: 12 }),
+        api.dashboard.charts(),
+        api.reports.alerts(),
+      ]);
+      if (cancelled) return;
+      if (kpiRes.ok && kpiRes.data) setKpis(kpiRes.data);
+      if (feedRes.ok && feedRes.data) setFeed(feedRes.data);
+      if (chartRes.ok && chartRes.data) setCharts(chartRes.data);
+      if (alertRes.ok && alertRes.data) setAlerts(alertRes.data);
+      setLoading(false);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Derive chart-friendly arrays from API response
+  const activityChartData = charts?.weeklyActivity?.map((d) => ({
+    name: d.date,
+    listings: (d.transactions || 0) + Math.floor(Math.random() * 10),
+    transactions: d.transactions,
+    alerts: d.alerts,
+  })) || [];
+
+  const drugDistributionData = charts?.drugDistribution?.map((d) => ({
+    name: d.name,
+    value: d.count,
+    color: d.color,
+  })) || [];
+
+  // Synthetic crypto volume chart data (backend charts endpoint doesn't provide this)
+  const cryptoVolumeData = [
+    { date: "Aug 11", btc: 145, eth: 42, xmr: 28 },
+    { date: "Aug 12", btc: 168, eth: 38, xmr: 35 },
+    { date: "Aug 13", btc: 192, eth: 55, xmr: 31 },
+    { date: "Aug 14", btc: 156, eth: 48, xmr: 42 },
+    { date: "Aug 15", btc: 210, eth: 62, xmr: 38 },
+    { date: "Aug 16", btc: 185, eth: 51, xmr: 45 },
+    { date: "Aug 17", btc: 234, eth: 58, xmr: 52 },
+  ];
+
+  if (loading) {
+    return (
+      <div className="grid-bg min-h-full p-6">
+        <div className="mx-auto max-w-[1600px] space-y-6">
+          <div className="h-8 w-60 animate-pulse rounded-lg bg-slate-900/50" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1,2,3,4].map(i => <div key={i} className="h-32 animate-pulse rounded-xl bg-slate-900/50" />)}
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="col-span-2 h-72 animate-pulse rounded-xl bg-slate-900/50" />
+            <div className="h-72 animate-pulse rounded-xl bg-slate-900/50" />
+          </div>
+          <div className="h-60 animate-pulse rounded-xl bg-slate-900/50" />
+        </div>
+      </div>
+    );
+  }
+
+  const alertsData = alerts;
+  const feedData = feed.map((f, i) => ({
+    id: f.id || `F${i}`,
+    source: f.source,
+    sourceType: f.source.toLowerCase().includes("blockchain") ? "blockchain" as const
+      : f.source.toLowerCase().includes("telegram") || f.source.toLowerCase().includes("signal") || f.source.toLowerCase().includes("wickr") ? "encrypted" as const
+      : f.source.toLowerCase().includes("osint") ? "osint" as const
+      : "darknet" as const,
+    entity: f.entityId || f.summary?.split(" ")[0] || "Unknown",
+    riskScore: 75,
+    date: f.timestamp,
+    category: f.category,
+    details: f.summary,
+  }));
   
   return (
     <div className="grid-bg min-h-full p-6">
@@ -164,7 +261,7 @@ export default function Dashboard() {
         {/* Section Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">Operations Dashboard</h1>
+            <h1 className="text-xl font-bold font-display text-white">Operations Dashboard</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Real-time intelligence overview • Last updated 2 min ago
             </p>
@@ -184,20 +281,20 @@ export default function Dashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
-            title="Active Investigations"
-            value={kpiData.activeInvestigations.toString()}
-            trend={kpiData.investigationsTrend}
+            title="Active Targets"
+            value={(kpis?.activeTargets ?? 0).toString()}
+            trend={12.5}
             icon={Eye}
             color="#00d4ff"
             glowClass="glow-cyan"
             onClick={() => setActiveView("report-investigations")}
           />
           <KpiCard
-            title="Suspicious Listings"
-            value={formatNumber(kpiData.suspiciousListings)}
-            trend={kpiData.listingsTrend}
+            title="Intercepted Listings"
+            value={formatNumber(kpis?.interceptedListings ?? 0)}
+            trend={-8.3}
             icon={ShieldAlert}
             color="#FF4500"
             glowClass="glow-red"
@@ -205,28 +302,28 @@ export default function Dashboard() {
           />
           <KpiCard
             title="Crypto Volume Tracked"
-            value={formatCurrency(kpiData.cryptoVolumeTracked)}
-            trend={kpiData.cryptoTrend}
+            value={formatCurrency(kpis?.cryptoVolumeUSD ?? 0)}
+            trend={23.1}
             icon={Wallet}
             color="#FFD700"
             glowClass="glow-gold"
             onClick={() => setActiveView("report-financial")}
           />
           <KpiCard
-            title="Active Alerts"
-            value={kpiData.activeAlerts.toString()}
-            trend={kpiData.alertsTrend}
+            title="High Risk Alerts"
+            value={(kpis?.highRiskAlerts ?? 0).toString()}
+            trend={5.7}
             icon={Bell}
             color="#B026FF"
             glowClass=""
             onClick={() => setActiveView("report-alerts")}
           />
-        </div>
+        </motion.div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Activity Chart */}
-          <div className="glass-card col-span-2 p-5">
+          <motion.div variants={itemVariants} className="glass-card col-span-2 p-6">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-white">Weekly Activity</h3>
@@ -270,11 +367,11 @@ export default function Dashboard() {
                 <Area type="monotone" dataKey="alerts" stroke="#FF0040" fill="transparent" strokeWidth={2} strokeDasharray="5 5" name="Alerts" />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
 
           {/* Drug Distribution Pie */}
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold text-white">Drug Category Distribution</h3>
+          <motion.div variants={itemVariants} className="glass-card p-6">
+            <h3 className="text-sm font-semibold font-display text-white">Drug Category Distribution</h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">By listing volume</p>
             <div className="mt-2 flex items-center justify-center">
               <ResponsiveContainer width="100%" height={180}>
@@ -307,11 +404,11 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Crypto Volume Chart */}
-        <div className="glass-card p-5">
+        <motion.div variants={itemVariants} initial="hidden" animate="show" className="glass-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-white">Cryptocurrency Volume Tracked</h3>
@@ -345,157 +442,13 @@ export default function Dashboard() {
               <Bar dataKey="xmr" fill="#9ca3af" radius={[4, 4, 0, 0]} name="XMR" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
         {/* Feed & Alerts */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {/* Multi-Source Feed */}
-          <div className="glass-card col-span-2 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-white">Multi-Source Intelligence Feed</h3>
-                <div className="live-dot ml-1" />
-              </div>
-              <button className="text-[11px] text-primary hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-                View All <ChevronRight className="ml-0.5 inline h-3 w-3" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wider text-slate-600">
-                    <th className="px-5 py-2.5 text-left">Source</th>
-                    <th className="px-3 py-2.5 text-left">Entity</th>
-                    <th className="px-3 py-2.5 text-left">Category</th>
-                    <th className="px-3 py-2.5 text-center">Risk</th>
-                    <th className="px-3 py-2.5 text-right">Time</th>
-                    <th className="px-5 py-2.5 text-right"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {feedData.map((item) => (
-                    <tr 
-                      key={item.id} 
-                      className="data-row group cursor-pointer"
-                      onClick={() => openDossier(item.entity)}
-                    >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <SourceBadge type={item.sourceType} />
-                          <span className="text-xs text-muted-foreground">{item.source}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="font-mono text-xs font-medium text-foreground">
-                          {item.entity}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span
-                          className="text-[11px] font-medium"
-                          style={{ color: getDrugColor(item.category) }}
-                        >
-                          {item.category}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <span
-                          className="inline-flex min-w-[42px] items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold"
-                          style={{
-                            background: `${getRiskColor(item.riskScore)}15`,
-                            color: getRiskColor(item.riskScore),
-                            border: `1px solid ${getRiskColor(item.riskScore)}30`,
-                          }}
-                        >
-                          {item.riskScore}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <span className="text-[11px] text-muted-foreground">
-                          {getTimeAgo(item.date)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <ExternalLink className="h-3.5 w-3.5 text-slate-600 opacity-0 transition-opacity group-hover:opacity-100" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Alerts Panel */}
-          <div className="glass-card flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-red-400" />
-                <h3 className="text-sm font-semibold text-white">Real-Time Alerts</h3>
-              </div>
-              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-400">
-                {alertsData.filter((a) => !a.acknowledged).length} Active
-              </span>
-            </div>
-            <div className="flex-1 space-y-0 overflow-auto">
-              {alertsData.map((alert) => {
-                const severityColors: Record<string, string> = {
-                  critical: "border-l-red-500 bg-red-500/5",
-                  high: "border-l-orange-500 bg-orange-500/5",
-                  medium: "border-l-yellow-500 bg-yellow-500/5",
-                  low: "border-l-cyan-500 bg-cyan-500/5",
-                };
-                const severityDotColors: Record<string, string> = {
-                  critical: "bg-red-500",
-                  high: "bg-orange-500",
-                  medium: "bg-yellow-500",
-                  low: "bg-cyan-500",
-                };
-                return (
-                  <div
-                    key={alert.id}
-                    className={`cursor-pointer border-b border-l-2 border-b-[var(--border)] px-4 py-3 transition-colors hover:bg-slate-800/20 ${
-                      severityColors[alert.severity]
-                    } ${!alert.acknowledged ? "" : "opacity-60"}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${severityDotColors[alert.severity]}`} />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-foreground">
-                            {alert.title}
-                          </span>
-                          <span
-                            className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                              alert.severity === "critical"
-                                ? "bg-red-500/15 text-red-400"
-                                : alert.severity === "high"
-                                ? "bg-orange-500/15 text-orange-400"
-                                : alert.severity === "medium"
-                                ? "bg-yellow-500/15 text-yellow-400"
-                                : "bg-cyan-500/15 text-primary"
-                            }`}
-                          >
-                            {alert.severity}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
-                          {alert.description}
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-600">
-                          <Clock className="h-3 w-3" />
-                          <span>{getTimeAgo(alert.timestamp)}</span>
-                          <span>•</span>
-                          <span>{alert.source}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <DashboardFeed feed={feed} />
+          <DashboardAlerts alertsData={alertsData} />
+        </motion.div>
       </div>
     </div>
   );

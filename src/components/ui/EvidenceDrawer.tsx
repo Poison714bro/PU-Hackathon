@@ -70,7 +70,7 @@ function PinDrawer({
   const riskColor = getRiskColor(pin.riskScore);
 
   return (
-    <div className="drawer-enter z-30 flex w-96 flex-col border-l border-border bg-[var(--card)]/95 backdrop-blur-xl">
+    <div className="drawer-enter z-drawer flex w-96 flex-col border-l border-border bg-[var(--card)]/95 backdrop-blur-xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">
@@ -207,7 +207,7 @@ function NodeDrawer({
   const connectedEdges = graphEdgesData.filter((e) => e.source === node.id || e.target === node.id);
 
   return (
-    <div className="drawer-enter z-30 flex w-96 flex-col border-l border-border bg-[var(--card)]/95 backdrop-blur-xl">
+    <div className="drawer-enter z-drawer flex w-96 flex-col border-l border-border bg-[var(--card)]/95 backdrop-blur-xl">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <div className="flex items-center gap-3">

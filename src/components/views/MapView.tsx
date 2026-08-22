@@ -15,7 +15,8 @@ import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
 import Supercluster from "supercluster";
 import { useDebounce } from "use-debounce";
-import { mapPinsData, type MapPin } from "@/lib/mockData";
+import { type MapPin } from "@/lib/mockData";
+import { api } from "@/lib/apiClient";
 import { getDrugColor } from "@/lib/utils";
 
 
@@ -31,9 +32,9 @@ const drugCategories = [
   { name: "Prescription/Other", color: "#FFD700", icon: "💉" },
 ];
 
-const allDates = Array.from(new Set(mapPinsData.map((p) => p.date))).sort();
-const minDate = allDates[0];
-const maxDate = allDates[allDates.length - 1];
+// Initial defaults, but these will be updated from state
+const defaultMin = "2026-08-01";
+const defaultMax = "2026-08-17";
 
 function getDateRange(start: string, end: string): string[] {
   const dates: string[] = [];
@@ -92,7 +93,9 @@ const osmMapStyle = {
 };
 
 export default function MapView() {
-  const [dateRange, setDateRange] = useState<[string, string]>([minDate, maxDate]);
+  const [globalMinDate, setGlobalMinDate] = useState(defaultMin);
+  const [globalMaxDate, setGlobalMaxDate] = useState(defaultMax);
+  const [dateRange, setDateRange] = useState<[string, string]>([defaultMin, defaultMax]);
   const [activeCategories, setActiveCategories] = useState<Set<string>>(
     new Set(drugCategories.map((c) => c.name))
   );
@@ -104,6 +107,7 @@ export default function MapView() {
   const [hoverInfo, setHoverInfo] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [mapPinsData, setMapPinsData] = useState<MapPin[]>([]);
   const playRef = useRef<NodeJS.Timeout | null>(null);
 
   // Store integration
@@ -115,6 +119,31 @@ export default function MapView() {
 
   useEffect(() => {
     setIsClient(true);
+    // Fetch map pins from backend API
+    api.map.pins().then((res) => {
+      if (res.ok && res.data) {
+        setMapPinsData(res.data.map((p: any) => ({
+          id: p.id,
+          lat: p.lat,
+          lng: p.lng,
+          drugCategory: p.drugCategory,
+          label: p.label,
+          date: p.date,
+          details: p.quantityEst || `${p.city}, ${p.country}`,
+          riskScore: p.riskScore,
+          linkedNodeIds: [],
+          originRoute: [],
+        })));
+        
+        // Dynamically set date range bounds based on data
+        const dates = res.data.map((p: any) => p.date).sort();
+        if (dates.length > 0) {
+          setGlobalMinDate(dates[0]);
+          setGlobalMaxDate(dates[dates.length - 1]);
+          setDateRange([dates[0], dates[dates.length - 1]]);
+        }
+      }
+    });
   }, []);
 
   // Sync store selection into local state
@@ -129,7 +158,7 @@ export default function MapView() {
     setActiveCategories(new Set(filters.drugCategories));
   }, [filters.drugCategories]);
 
-  const allDateRange = useMemo(() => getDateRange(minDate, maxDate), []);
+  const allDateRange = useMemo(() => getDateRange(globalMinDate, globalMaxDate), [globalMinDate, globalMaxDate]);
   const sliderValue = useMemo(() => {
     const start = allDateRange.indexOf(dateRange[0]);
     const end = allDateRange.indexOf(dateRange[1]);
@@ -137,13 +166,13 @@ export default function MapView() {
   }, [dateRange, allDateRange]);
 
   const filteredPins = useMemo(() => {
-    return mapPinsData.filter((pin) => {
+    return mapPinsData.filter((pin: any) => {
       const dateMatch = pin.date >= dateRange[0] && pin.date <= dateRange[1];
       const categoryMatch = activeCategories.has(pin.drugCategory);
       const riskMatch = pin.riskScore >= filters.riskRange[0] && pin.riskScore <= filters.riskRange[1];
       return dateMatch && categoryMatch && riskMatch;
     });
-  }, [dateRange, activeCategories, filters.riskRange]);
+  }, [dateRange, activeCategories, filters.riskRange, mapPinsData]);
 
   // Supercluster for clustering
   const { clusters, supercluster, unclusteredPoints, clusterNodes } = useMemo(() => {
@@ -195,13 +224,23 @@ export default function MapView() {
     }
   }, [allDateRange, sliderValue]);
 
+  const handleFlyTo = useCallback((pin: MapPin) => {
+    setViewState((prev) => ({
+      ...prev,
+      longitude: pin.lng,
+      latitude: pin.lat,
+      zoom: 12,
+      transitionDuration: 1000,
+    }));
+  }, []);
+
   const handlePinClick = useCallback((pinId: string) => {
     setSelectedPin(pinId);
     const pin = mapPinsData.find((p) => p.id === pinId);
     if (pin) {
       selectEntity(pinId, "pin", pin.linkedNodeIds);
     }
-  }, [selectEntity]);
+  }, [selectEntity, mapPinsData]);
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedPin(null);
@@ -216,12 +255,12 @@ export default function MapView() {
       if (currentIdx >= allDateRange.length) {
         if (playRef.current) clearInterval(playRef.current);
         setIsPlaying(false);
-        setDateRange([minDate, maxDate]);
+        setDateRange([globalMinDate, globalMaxDate]);
         return;
       }
-      setDateRange([minDate, allDateRange[currentIdx]]);
+      setDateRange([globalMinDate, allDateRange[currentIdx]]);
     }, 400);
-  }, [allDateRange]);
+  }, [allDateRange, globalMinDate, globalMaxDate]);
 
   const stopPlayback = useCallback(() => {
     if (playRef.current) clearInterval(playRef.current);

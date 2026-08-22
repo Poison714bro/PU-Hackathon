@@ -159,7 +159,7 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-[var(--header-bg)] px-6 backdrop-blur-xl">
+    <header className="z-header flex h-16 shrink-0 items-center justify-between border-b border-border bg-[var(--header-bg)] px-6 backdrop-blur-md relative">
       {/* Advanced Search */}
       <div className="flex flex-1 items-center gap-3">
         <div className="relative max-w-lg flex-1" ref={searchRef}>
