@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { authenticate } from "@/lib/auth";
-import { Shield, Lock, User as UserIcon, Loader2 } from "lucide-react";
+import { Shield, Lock, User as UserIcon, Loader2, Cpu, Fingerprint, Activity } from "lucide-react";
+import { motion } from "framer-motion";
+
+type FocusedInputType = "identifier" | "password" | null;
 
 export default function LoginView() {
   const login = useAppStore((s) => s.login);
@@ -11,11 +14,12 @@ export default function LoginView() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<FocusedInputType>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim() || !password.trim()) {
-      setError("Please enter both username/email and password.");
+      setError("Credentials required for access.");
       return;
     }
 
@@ -29,81 +33,103 @@ export default function LoginView() {
     if (result.success && result.user && result.token) {
       login(result.user, result.token);
     } else {
-      setError(result.error || "Authentication failed.");
+      setError(result.error || "Authentication protocol failed.");
     }
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0f172a] via-background to-background">
-      <div className="relative w-full max-w-md p-8 rounded-2xl bg-card/80 border border-border/50 shadow-2xl backdrop-blur-xl">
-        {/* Glow effect */}
-        <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl opacity-50 mix-blend-screen pointer-events-none" />
-        <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl opacity-50 mix-blend-screen pointer-events-none" />
-        
-        <div className="flex flex-col items-center mb-8 relative z-10">
-          <div className="p-3 bg-primary/10 rounded-xl mb-4 border border-primary/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-            <Shield className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-wide">CyberIntel Platform</h1>
-          <p className="text-sm text-muted-foreground mt-1 text-center">Authentication Gateway</p>
-        </div>
+    <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-[#0a0e17]">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+      <div className="grid-bg absolute inset-0 z-0 opacity-30" />
 
-        <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-400 text-center animate-in fade-in slide-in-from-top-1">
-              {error}
+      {/* Main Login Card */}
+      <div className="relative z-10 w-full max-w-md animate-slide-up px-4">
+        <div className="relative overflow-hidden rounded-xl border border-cyan-500/30 bg-[#0d131f]/95 p-8 shadow-[0_0_40px_-10px_rgba(0,212,255,0.15)]">
+          
+          {/* Header Section */}
+          <div className="mb-10 flex flex-col items-center">
+            <div className="relative mb-5 flex h-14 w-14 animate-fade-in items-center justify-center rounded-2xl bg-[#131f33] border border-cyan-500/20 shadow-[inset_0_0_15px_rgba(0,212,255,0.1)]">
+              <Shield className="h-7 w-7 text-cyan-400" />
+              <Activity className="absolute -bottom-1 -right-4 h-8 w-8 text-[#1d2a44] opacity-50" />
             </div>
-          )}
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Username or Email</label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="w-full bg-background/50 border border-border rounded-lg py-2.5 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-muted-foreground/50"
-                placeholder="agent_smith"
-                disabled={loading}
-              />
-            </div>
+            
+            <h1 className="bg-gradient-to-b from-slate-200 to-slate-500 bg-clip-text text-center text-3xl font-black tracking-[0.15em] text-transparent">
+              NEXUS
+            </h1>
+            <p className="mt-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-cyan-500">
+              <Cpu className="h-3.5 w-3.5" />
+              Secure Terminal
+            </p>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background/50 border border-border rounded-lg py-2.5 pl-10 pr-4 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-muted-foreground/50"
-                placeholder="••••••••"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full relative overflow-hidden group bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg py-2.5 transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Authenticating...
-              </span>
-            ) : (
-              "Initialize Session"
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div 
+                className="overflow-hidden animate-fade-in rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-xs font-medium text-red-400 shadow-[0_0_10px_rgba(255,0,0,0.1)] backdrop-blur-sm"
+              >
+                {error}
+              </div>
             )}
-          </button>
-        </form>
 
-        <div className="mt-8 pt-4 border-t border-border/50 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-            Unauthorized access is strictly prohibited and logged.
-          </p>
+            <div className="space-y-4">
+              {/* Identifier Input */}
+              <div className="relative flex items-center overflow-hidden rounded-lg border border-slate-700/60 bg-[#1e2638]">
+                <div className="flex h-12 w-12 items-center justify-center border-r border-slate-700/60 bg-[#161d2b]">
+                  <UserIcon className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  className="h-12 w-full bg-transparent px-4 text-sm font-medium text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                  placeholder="admin"
+                  disabled={loading}
+                  autoComplete="off"
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative flex items-center overflow-hidden rounded-lg border border-slate-700/60 bg-[#1e2638]">
+                <div className="flex h-12 w-12 items-center justify-center border-r border-slate-700/60 bg-[#161d2b]">
+                  <Lock className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 w-full bg-transparent px-4 text-sm font-medium text-slate-200 placeholder:text-slate-500 focus:outline-none tracking-[0.2em]"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+                <div className="flex h-12 w-12 items-center justify-center border-l border-slate-700/60">
+                  <Fingerprint className="h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#00c6ff] to-[#0072ff] font-bold tracking-wide text-white shadow-[0_4px_20px_rgba(0,198,255,0.4)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" /> AUTHENTICATING
+                </span>
+              ) : (
+                <span className="text-[13px]">INITIALIZE CONNECTION</span>
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#3d1a22]" />
+              Encrypted Connection Required
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ViewType } from "@/app/page";
 import {
   LayoutDashboard,
@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
   Activity,
   Fingerprint,
   Filter,
@@ -30,50 +29,32 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { navItems, drugCategories, sourceStreams, suspectRoles } from "@/lib/constants";
 
 interface SidebarProps {
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
 }
 
-const navItems: { id: ViewType; label: string; icon: React.ElementType; clearance: number }[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, clearance: 1 },
-  { id: "map", label: "Geo-Intel Map", icon: Map, clearance: 1 },
-  { id: "evidence", label: "Evidence Graph", icon: GitBranch, clearance: 2 },
-  { id: "investigations", label: "Investigations", icon: Search, clearance: 2 },
-  { id: "entity-resolution", label: "Entity Resolution", icon: Users, clearance: 2 },
-  { id: "timeline-reconstructor", label: "Timeline Engine", icon: Activity, clearance: 2 },
-  { id: "movement-tracker", label: "Pattern of Life", icon: Radar, clearance: 2 },
-];
-
-const drugCategories = [
-  { name: "Opioids/Fentanyl", color: "#FF4500", icon: Syringe },
-  { name: "Stimulants", color: "#00FFFF", icon: Pill },
-  { name: "Cannabis", color: "#39FF14", icon: Leaf },
-  { name: "Psychedelics", color: "#B026FF", icon: Microscope },
-  { name: "Prescription/Other", color: "#FFD700", icon: Pill },
-];
-
-const sourceStreams = [
-  { name: "Darknet", icon: Globe, color: "#10b981" },
-  { name: "Blockchain", icon: Bitcoin, color: "#f59e0b" },
-  { name: "Encrypted", icon: Lock, color: "#6366f1" },
-  { name: "OSINT", icon: Monitor, color: "#8b5cf6" },
-];
-
-const suspectRoles = [
-  { name: "supplier", label: "Supplier", color: "#ef4444" },
-  { name: "dealer", label: "Dealer", color: "#f97316" },
-  { name: "buyer", label: "Buyer", color: "#3b82f6" },
-  { name: "courier", label: "Courier", color: "#a855f7" },
-];
-
-export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
+export default function Sidebar({ activeView, onViewChange, threatLevel = "ELEVATED" }: SidebarProps & { threatLevel?: string }) {
   const [collapsed, setCollapsed] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [scrapeTime, setScrapeTime] = useState(14);
+
+  // Scrape cycle interval
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setScrapeTime((prev) => prev + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
 
   const filters = useAppStore((s) => s.filters);
   const toggleDrugCategory = useAppStore((s) => s.toggleDrugCategory);
+  const toggleSourceStream = useAppStore((s) => s.toggleSourceStream);
   const setOnlyDrugCategory = useAppStore((s) => s.setOnlyDrugCategory);
   const setOnlySourceStream = useAppStore((s) => s.setOnlySourceStream);
   const setRiskRange = useAppStore((s) => s.setRiskRange);
@@ -87,12 +68,20 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const filteredNavItems = navItems.filter((item) => userClearance >= item.clearance);
 
   return (
-    <aside
-      className={`z-sidebar relative flex flex-col border-r border-border bg-[var(--sidebar-bg)] transition-all duration-300 ease-in-out ${
-        collapsed ? "w-[68px]" : "w-[260px]"
-      }`}
-    >
-      {/* Logo */}
+    <>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-[35] bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={`z-sidebar absolute inset-y-0 left-0 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col border-r border-border bg-[var(--sidebar-bg)] ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } ${collapsed ? "md:w-[68px] w-[260px]" : "w-[260px]"}`}
+      >
+        {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border px-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
           <Fingerprint className="h-5 w-5 text-white" />
@@ -124,12 +113,15 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
           return (
             <button
               key={item.id}
-              onClick={() => onViewChange(item.id)}
+              onClick={() => {
+                onViewChange(item.id);
+                setSidebarOpen(false); // Close mobile sidebar on navigation
+              }}
               className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                 isActive
                   ? "bg-cyan-500/10 text-primary shadow-inner shadow-cyan-500/5"
                   : "text-muted-foreground hover:bg-slate-800/50 hover:text-foreground"
-              } ${collapsed ? "justify-center" : ""}`}
+              } ${collapsed ? "md:justify-center" : ""}`}
               title={collapsed ? item.label : undefined}
             >
               <Icon
@@ -152,11 +144,11 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
         </div>
         {drugCategories.map((cat) => {
           const Icon = cat.icon;
-          const isActive = activeView === "dashboard" && filters.drugCategories.has(cat.name) && filters.drugCategories.size === 1;
+          const isActive = filters.drugCategories.has(cat.name);
           return (
             <button
               key={cat.name}
-              onClick={() => setOnlyDrugCategory(cat.name)}
+              onClick={() => toggleDrugCategory(cat.name)}
               className={`group flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                 isActive ? "bg-slate-800/50" : "hover:bg-slate-800/30"
               } ${collapsed ? "justify-center" : ""}`}
@@ -184,11 +176,11 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
         </div>
         {sourceStreams.map((source) => {
           const Icon = source.icon;
-          const isActive = activeView === "dashboard" && filters.sourceStreams.has(source.name) && filters.sourceStreams.size === 1;
+          const isActive = filters.sourceStreams.has(source.name);
           return (
             <button
               key={source.name}
-              onClick={() => setOnlySourceStream(source.name)}
+              onClick={() => toggleSourceStream(source.name)}
               className={`group flex w-full items-center gap-3 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                 isActive ? "bg-slate-800/50" : "hover:bg-slate-800/30"
               } ${collapsed ? "justify-center" : ""}`}
@@ -219,7 +211,7 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="font-semibold uppercase tracking-wider text-muted-foreground" style={{ fontSize: "10px" }}>Filters</span>
             </div>
-            {filtersOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${filtersOpen ? "rotate-180" : ""}`} />
           </button>
 
           {filtersOpen && (
@@ -312,11 +304,17 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
               </div>
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-muted-foreground">Scrape Cycle</span>
-                <span className="text-foreground">14m ago</span>
+                <span className="text-foreground">{scrapeTime}m ago</span>
               </div>
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-muted-foreground">Threat Level</span>
-                <span className="font-semibold text-orange-400">ELEVATED</span>
+                <span className={`font-semibold ${
+                  threatLevel.toUpperCase() === "ELEVATED" ? "text-orange-400" :
+                  threatLevel.toUpperCase() === "CRITICAL" ? "text-red-400" :
+                  "text-emerald-400"
+                }`}>
+                  {threatLevel.toUpperCase()}
+                </span>
               </div>
             </div>
           </div>
@@ -335,10 +333,10 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
         </div>
       </div>
 
-      {/* Collapse Toggle */}
+      {/* Collapse Toggle (Desktop Only) */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-[var(--sidebar-bg)] text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+        className="hidden md:flex absolute -right-3 top-20 z-10 h-6 w-6 items-center justify-center rounded-full border border-border bg-[var(--sidebar-bg)] text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
       >
         {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
       </button>
@@ -367,6 +365,7 @@ export default function Sidebar({ activeView, onViewChange }: SidebarProps) {
           </div>
         </div>
       )}
-    </aside>
+      </aside>
+    </>
   );
 }

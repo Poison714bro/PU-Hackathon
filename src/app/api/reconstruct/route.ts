@@ -15,13 +15,12 @@ export async function POST(request: Request) {
 
     // Attempt to map the query to an entity ID. If not found, default to ent-001
     let entityId = query;
-    if (query === 'F9B2 4A32 1109 E77A' || query.toLowerCase().includes('darkphoenix') || query.includes('bc1q9hk7')) {
+    if (query === 'F9B2 4A32 1109 E77A' || query.toLowerCase().includes('darkphoenix') || query.includes('bc1q9hk7') || query === 'ent-001') {
       entityId = 'ent-001';
     } else if (query.toLowerCase().includes('ghost') || query.includes('ent-003')) {
       entityId = 'ent-003';
     } else if (!query.startsWith('ent-')) {
-      // For any other random text, just demo with ent-001
-      entityId = 'ent-001';
+      return NextResponse.json({ error: "Entity not found in databases." }, { status: 404 });
     }
 
     const pythonPath = path.join(process.cwd(), 'darknet-intel-mcp', 'venv', 'Scripts', 'python.exe');
@@ -63,12 +62,7 @@ export async function POST(request: Request) {
     }
 
     if (graphData.error) {
-      // Fallback if entity not in our mock DB
-      const fbResult = await client.readResource({ uri: 'neo4j://case-graphs/ent-001' });
-      const textContent = fbResult.contents[0];
-      if ('text' in textContent) {
-          graphData = JSON.parse(textContent.text as string);
-      }
+      return NextResponse.json({ error: "Entity not found in databases." }, { status: 404 });
     }
 
     // 2. Query the blockchain ledger tool for the primary wallet
@@ -108,7 +102,9 @@ export async function POST(request: Request) {
     if (transport) {
       try {
         await transport.close();
-      } catch (e) {}
+      } catch (e: any) {
+        console.error("Analysis AI failed to extract entity details:", e);
+      }
     }
   }
 }

@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ── Users & RBAC ──
@@ -32,6 +32,7 @@ model IntelEntity {
   firstSeen      DateTime
   lastActive     DateTime
   summary        String
+  rawData        Json?
 
   // Relationships
   cryptoWallets  CryptoWallet[]
@@ -42,6 +43,10 @@ model IntelEntity {
   // Graph Relationships
   edgesSource    GraphEdge[] @relation("SourceEntity")
   edgesTarget    GraphEdge[] @relation("TargetEntity")
+
+  @@index([category])
+  @@index([riskScore])
+  @@index([status])
 }
 
 // ── Entity Identifiers ──
@@ -72,9 +77,24 @@ model FeedEntry {
   details     String
   timestamp   DateTime
   severity    String
+  rawData     Json?
   
   entityId    String?
   entity      IntelEntity? @relation(fields: [entityId], references: [id])
+
+  @@index([timestamp])
+  @@index([sourceType])
+  @@index([severity])
+}
+
+// ── Raw Ingestion Lake ──
+model RawIngestLog {
+  id          String   @id @default(uuid())
+  sourceName  String
+  payload     Json
+  processed   Boolean  @default(false)
+  errorLog    String?
+  createdAt   DateTime @default(now())
 }
 
 model MapIncident {
@@ -90,6 +110,9 @@ model MapIncident {
 
   entityId     String?
   entity       IntelEntity? @relation(fields: [entityId], references: [id])
+
+  @@index([date])
+  @@index([drugCategory])
 }
 
 // ── Graph Edges (Relationships) ──

@@ -1,39 +1,61 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { mapPinsData } from '@/lib/mockData';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const drugCategory = searchParams.get('drugCategory');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const categoriesParam = searchParams.get('drugCategory');
     const riskMin = searchParams.get('riskMin');
     const riskMax = searchParams.get('riskMax');
 
-    const where: any = {};
-    if (drugCategory) where.drugCategory = drugCategory;
-    if (riskMin || riskMax) {
-      where.riskScore = {};
-      if (riskMin) where.riskScore.gte = parseFloat(riskMin);
-      if (riskMax) where.riskScore.lte = parseFloat(riskMax);
+    let results = [...mapPinsData];
+
+    // Filter by Date Range (mocking a DB query over time)
+    if (startDate && endDate) {
+      const startTs = new Date(startDate).getTime();
+      const endTs = new Date(endDate).getTime();
+      
+      results = results.filter((pin) => {
+        const pinTs = new Date(pin.date).getTime();
+        return pinTs >= startTs && pinTs <= endTs;
+      });
     }
 
-    const incidents = await prisma.mapIncident.findMany({ where });
+    // Filter by Drug Categories
+    if (categoriesParam) {
+      const activeCategories = new Set(categoriesParam.split(','));
+      results = results.filter((pin) => activeCategories.has(pin.drugCategory));
+    }
+    
+    // Filter by Risk
+    if (riskMin || riskMax) {
+      const min = riskMin ? parseFloat(riskMin) : 0;
+      const max = riskMax ? parseFloat(riskMax) : 100;
+      results = results.filter((pin) => pin.riskScore >= min && pin.riskScore <= max);
+    }
 
-    const pins = incidents.map(inc => ({
+    // Map into expected Api format
+    const pins = results.map(inc => ({
       id: inc.id,
       lat: inc.lat,
       lng: inc.lng,
       city: inc.label.split(',')[0] || "Unknown",
       country: inc.label.split(',')[1]?.trim() || "Unknown",
-      drugCategory: inc.drugCategory.split(' - ')[0],
+      drugCategory: inc.drugCategory,
       riskScore: inc.riskScore,
-      entityId: inc.entityId || "",
-      date: inc.date.toISOString(),
+      entityId: inc.id,
+      date: inc.date,
       label: inc.label,
-      quantityEst: inc.details, // Mock mapping
-      sourceType: "osint"
+      quantityEst: inc.details,
+      sourceType: "osint",
+      originRoute: inc.originRoute || [],
+      confiscatedAmount: inc.confiscatedAmount
     }));
+
+    // Simulate network latency for hackathon realism
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     return NextResponse.json({ success: true, data: pins });
   } catch (error: any) {

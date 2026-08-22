@@ -7,10 +7,34 @@ import DeckGL from "@deck.gl/react";
 import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
 import { PathStyleExtension } from "@deck.gl/extensions";
 import { trackerData, type TrackerEntity } from "@/lib/trackerData";
+import { FlyToInterpolator } from "@deck.gl/core";
 import { getDrugColor } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const MAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+const darkMapStyle = {
+  version: 8 as const,
+  sources: {
+    carto: {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
+      ],
+      tileSize: 256,
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+      maxzoom: 20
+    }
+  },
+  layers: [
+    {
+      id: "carto-dark",
+      type: "raster",
+      source: "carto"
+    }
+  ]
+};
 
 interface Hop {
   name: string;
@@ -62,6 +86,7 @@ export default function MovementTracker() {
       latitude: entity.lat,
       zoom: 4,
       transitionDuration: 1500,
+      transitionInterpolator: new FlyToInterpolator(),
     });
   };
 
@@ -187,11 +212,11 @@ export default function MovementTracker() {
           {isClient && (
             <DeckGL
               layers={layers}
-              initialViewState={viewState}
+              viewState={viewState}
               onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
             >
-              <Map mapStyle={MAP_STYLE} reuseMaps style={{ opacity: 0.65, mixBlendMode: 'screen' }}>
+              <Map mapStyle={darkMapStyle as any} reuseMaps style={{ opacity: 0.65, mixBlendMode: 'screen' }}>
                 {/* Pulse Animation for Last Known Physical Node */}
                 {syntheticHops.length > 0 && (
                   <Marker longitude={syntheticHops[2].lng} latitude={syntheticHops[2].lat}>

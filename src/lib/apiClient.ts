@@ -339,6 +339,7 @@ async function request<T>(
     const res = await fetch(url, {
       method,
       headers,
+      credentials: "include",
       body: body ? JSON.stringify(body) : undefined,
     });
 
@@ -450,18 +451,18 @@ export const api = {
       riskMin?: number;
       riskMax?: number;
       sourceType?: string;
+      startDate?: string;
+      endDate?: string;
     }) =>
       request<MapPinApi[]>("GET", "/map/pins", undefined, filters as any),
   },
 
   // ── Graph ──
   graph: {
-    topology: (nodeType?: string) =>
+    topology: (entityId?: string) =>
       request<GraphTopology>(
         "GET",
-        "/graph/topology",
-        undefined,
-        nodeType ? { nodeType } : undefined
+        entityId ? `/network/${encodeURIComponent(entityId)}` : "/network/default"
       ),
   },
 
@@ -507,7 +508,7 @@ export const api = {
 
   // ── Search ──
   search: (q: string) =>
-    request<SearchResultApi[]>("GET", "/search", undefined, { q }),
+    request<SearchResultApi[]>("GET", "/search/", undefined, { keyword: q }),
 
   // ── Reconstruct (Timeline) ──
   reconstruct: (query: string) =>

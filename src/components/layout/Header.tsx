@@ -14,6 +14,7 @@ import {
   MapPin,
   GitBranch,
   FolderOpen,
+  Menu,
 } from "lucide-react";
 import { alertsData, mapPinsData, graphNodesData, kanbanData } from "@/lib/mockData";
 import { getTimeAgo } from "@/lib/utils";
@@ -64,6 +65,8 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
 
   const navigateToEntity = useAppStore((s) => s.navigateToEntity);
   const setActiveView = useAppStore((s) => s.setActiveView);
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
 
   const unreadAlerts = alertsData.filter((a) => !a.acknowledged).length;
 
@@ -159,9 +162,17 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
   };
 
   return (
-    <header className="z-header flex h-16 shrink-0 items-center justify-between border-b border-border bg-[var(--header-bg)] px-6 backdrop-blur-md relative">
-      {/* Advanced Search */}
+    <header className="z-header flex h-16 shrink-0 items-center justify-between border-b border-border bg-[var(--header-bg)] px-4 md:px-6 backdrop-blur-md relative">
       <div className="flex flex-1 items-center gap-3">
+        {/* Mobile Menu Toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="md:hidden p-2 -ml-2 text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        
+        {/* Advanced Search */}
         <div className="relative max-w-lg flex-1" ref={searchRef}>
           <div
             className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-all duration-200 ${
@@ -198,7 +209,7 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
 
           {/* Search Results / History Dropdown */}
           {searchFocused && (searchQuery.length >= 2 ? searchResults.length > 0 : searchHistory.length > 0) && (
-            <div className="search-results-dropdown absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
+            <div className="search-results-dropdown absolute left-0 right-0 top-12 z-dropdown overflow-hidden rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
               {searchQuery.length >= 2 && searchResults.length > 0 && (
                 <>
                   <div className="border-b border-border px-4 py-2">
@@ -298,7 +309,7 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
 
           {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 top-12 z-50 w-96 rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
+            <div className="absolute right-0 top-12 z-dropdown w-96 rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-400" />
@@ -374,7 +385,7 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 top-12 z-50 w-56 rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
+            <div className="absolute right-0 top-12 z-dropdown w-56 rounded-xl border border-border bg-[var(--card)] shadow-2xl shadow-black/50">
               <div className="border-b border-border p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-sm font-bold text-white">

@@ -35,6 +35,7 @@ export interface AppState {
 
   // View navigation
   activeView: "dashboard" | "map" | "evidence" | "investigations" | "entity-resolution" | "timeline-reconstructor" | "dossier" | "movement-tracker" | "report-investigations" | "report-listings" | "report-financial" | "report-alerts";
+  sidebarOpen: boolean;
 
   // Search
   searchQuery: string;
@@ -59,6 +60,7 @@ export interface AppState {
   selectEntity: (id: string, type: "pin" | "node", linkedIds?: string[]) => void;
   clearSelection: () => void;
   setActiveView: (view: AppState["activeView"]) => void;
+  setSidebarOpen: (isOpen: boolean) => void;
   setSearchQuery: (query: string) => void;
   navigateToEntity: (id: string, type: "pin" | "node", view: AppState["activeView"]) => void;
   openDossier: (entityId: string) => void;
@@ -110,6 +112,7 @@ export const useAppStore = create<AppState>((set, get) => {
     activeEntityId: null,
     highlightedIds: [],
     activeView: "dashboard",
+    sidebarOpen: false,
     searchQuery: "",
     
     mapPinsCache: null,
@@ -136,7 +139,9 @@ export const useAppStore = create<AppState>((set, get) => {
         highlightedIds: [],
       }),
 
-    setActiveView: (view) => set({ activeView: view }),
+    setActiveView: (view) => set({ activeView: view, sidebarOpen: false }),
+
+    setSidebarOpen: (isOpen) => set({ sidebarOpen: isOpen }),
 
     setSearchQuery: (query) => set({ searchQuery: query }),
 

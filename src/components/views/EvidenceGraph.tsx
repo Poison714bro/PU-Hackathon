@@ -8,199 +8,58 @@ import {
   Mail,
   Key,
   ShoppingBag,
-  GitBranch,
   Search,
   Zap,
   MessageSquare,
   Shield,
   ChevronDown,
   X,
-  MapPin as MapPinIcon,
-  FileText,
   Plus,
   ExternalLink,
-  Link2,
   Target,
   Crosshair,
   Hash,
+  Activity,
+  Share2,
+  Lock,
+  Pin,
+  Link2
 } from "lucide-react";
-import { type GraphNodeData } from "@/lib/mockData";
-import { api, type GraphNodeApi, type GraphEdgeApi, type MapPinApi } from "@/lib/apiClient";
-import { getRiskColor, getDrugColor } from "@/lib/utils";
+import { api } from "@/lib/apiClient";
 import { useAppStore } from "@/lib/store";
-import { useRadialLayout, RING_RADIUS } from "@/hooks/useRadialLayout";
+import { motion, AnimatePresence } from "framer-motion";
+import { LineChart, Line, AreaChart, Area, ResponsiveContainer } from "recharts";
 
-// Dynamic imports for React Flow (SSR incompatible)
-const ReactFlow = dynamic(() => import("reactflow").then((mod) => mod.default), {
-  ssr: false,
-}) as React.ComponentType<any>;
-const Background = dynamic(
-  () => import("reactflow").then((mod) => mod.Background),
-  { ssr: false }
-) as React.ComponentType<any>;
-const Controls = dynamic(
-  () => import("reactflow").then((mod) => mod.Controls),
-  { ssr: false }
-) as React.ComponentType<any>;
-const MiniMap = dynamic(
-  () => import("reactflow").then((mod) => mod.MiniMap),
-  { ssr: false }
-) as React.ComponentType<any>;
-const Handle = dynamic(
-  () => import("reactflow").then((mod) => mod.Handle),
-  { ssr: false }
-) as React.ComponentType<any>;
+const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 // ── Forensic Palette Taxonomy ──
-// Steel Blue: #4A90E2
-// Muted Amber: #D69E2E
-// Threat Red: #E53E3E
-// Chalk White: #E2E8F0
-// Tactical Slate: #0f111a
-
-const nodeTypeConfig: Record<
-  string,
-  { icon: React.ElementType; color: string; label: string }
-> = {
-  username: { icon: User, color: "#4A90E2", label: "IDENTITY" },
-  wallet: { icon: Wallet, color: "#D69E2E", label: "WALLET" },
-  email: { icon: Mail, color: "#E2E8F0", label: "EMAIL" },
-  pgp: { icon: Key, color: "#E2E8F0", label: "PGP KEY" },
-  listing: { icon: ShoppingBag, color: "#E53E3E", label: "LISTING" },
+const nodeTypeConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+  username: { icon: User, color: "#3b82f6", label: "IDENTITY" }, // Intense Blue
+  wallet: { icon: Wallet, color: "#eab308", label: "WALLET" }, // Yellow
+  email: { icon: Mail, color: "#f8fafc", label: "EMAIL" }, // White
+  pgp: { icon: Key, color: "#94a3b8", label: "PGP KEY" }, // Grey
+  listing: { icon: ShoppingBag, color: "#ef4444", label: "LISTING" }, // Red
 };
 
 const roleConfig: Record<string, { label: string; color: string }> = {
-  supplier: { label: "SUPPLIER", color: "#E53E3E" },
-  dealer: { label: "DEALER", color: "#D69E2E" },
-  buyer: { label: "BUYER", color: "#4A90E2" },
-  courier: { label: "COURIER", color: "#E2E8F0" },
-  unknown: { label: "UNKNOWN", color: "#718096" },
+  supplier: { label: "SUPPLIER", color: "#ef4444" },
+  dealer: { label: "DEALER", color: "#eab308" },
+  buyer: { label: "BUYER", color: "#3b82f6" },
+  courier: { label: "COURIER", color: "#94a3b8" },
+  unknown: { label: "UNKNOWN", color: "#64748b" },
 };
 
-// Edge criteria definitions
 const edgeCriteria = [
-  { key: "financial", label: "FINANCIAL", icon: Zap, color: "#D69E2E" },
-  { key: "communication", label: "COMMUNICATION", icon: MessageSquare, color: "#E2E8F0" },
-  { key: "infrastructure", label: "INFRASTRUCTURE", icon: Shield, color: "#4A90E2" },
+  { key: "financial", label: "FINANCIAL", icon: Zap, color: "#eab308" },
+  { key: "communication", label: "COMMUNICATION", icon: MessageSquare, color: "#f8fafc" },
+  { key: "infrastructure", label: "INFRASTRUCTURE", icon: Shield, color: "#3b82f6" },
 ];
 
-const methodToCriteria: Record<string, string> = {
-  darknet: "financial",
-  encrypted: "communication",
-  "in-person": "communication",
-  phone: "communication",
-};
+const mockSparklineData = Array.from({ length: 30 }, (_, i) => ({ time: i, val: Math.random() * 100 }));
 
-// Radial Layout Constants moved to hook
-
-// ── Custom Node Components ──
-
-// Concentric Rings Background Node
-function RadarRingsNode({ data }: { data: any }) {
-  const hops = data.hops || 2;
-  return (
-    <div className="relative flex items-center justify-center pointer-events-none" style={{ width: 0, height: 0 }}>
-      {/* Exact SVG Concentric Circles - explicit width/height to prevent culling */}
-      <svg className="absolute overflow-visible" style={{ left: -1000, top: -1000, width: 2000, height: 2000 }}>
-        <g transform="translate(1000, 1000)">
-          {/* Crosshair at ground zero */}
-          <line x1="-15" y1="0" x2="15" y2="0" stroke="#4A90E2" strokeWidth="1" opacity="0.5" />
-          <line x1="0" y1="-15" x2="0" y2="15" stroke="#4A90E2" strokeWidth="1" opacity="0.5" />
-          
-          {[1, 2, 3].map((h) => {
-            if (h > hops) return null;
-            const r = RING_RADIUS[h as keyof typeof RING_RADIUS];
-            return (
-              <circle
-                key={h}
-                cx={0}
-                cy={0}
-                r={r}
-                fill="none"
-                stroke="#2d3748"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-              />
-            );
-          })}
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-// Crisp Vector Node (Flat, No Glows)
-function EvidenceNode({ data }: { data: any }) {
-  const config = nodeTypeConfig[data.nodeType] || nodeTypeConfig.username;
-  const Icon = config.icon;
-  const isSelected = data.isSelected;
-  const isTarget = data.isTarget;
-
-  return (
-    <div
-      className="group relative cursor-pointer font-mono uppercase"
-      onClick={() => data.onSelect(data.nodeData)}
-    >
-      {/* Center-aligned handles to ensure straight edges pass exactly center-to-center */}
-      <Handle type="target" position="top" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }} />
-      <Handle type="source" position="bottom" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0 }} />
-
-      {/* Main Crisp Vector Circle - Flat, solid, 1px border */}
-      <div
-        className={`relative flex items-center justify-center rounded-full transition-transform ${
-          isTarget ? "h-16 w-16" : "h-12 w-12"
-        } ${isSelected && !isTarget ? "scale-110" : ""}`}
-        style={{
-          background: "#0f111a", // Matches canvas
-          border: `1px solid ${config.color}`,
-        }}
-      >
-        <Icon className={isTarget ? "h-6 w-6" : "h-4 w-4"} style={{ color: config.color }} />
-      </div>
-
-      {/* Sharp rectangular Role badge */}
-      {data.suspectRole && data.suspectRole !== "unknown" && (
-        <div
-          className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center text-[7px] font-bold text-[#0f111a]"
-          style={{
-            background: roleConfig[data.suspectRole]?.color || "#718096",
-            border: `1px solid #0f111a`,
-          }}
-        >
-          {data.suspectRole.charAt(0).toUpperCase()}
-        </div>
-      )}
-
-      {/* Target Marker Indicator */}
-      {isTarget && (
-        <div className="absolute -left-2 -top-2 h-3 w-3 border-t border-l border-[#4A90E2]" />
-      )}
-      {isTarget && (
-        <div className="absolute -right-2 -bottom-2 h-3 w-3 border-b border-r border-[#4A90E2]" />
-      )}
-
-      {/* Label below node */}
-      <div className={`mt-2 text-center flex flex-col items-center justify-center ${isTarget ? "mt-3" : ""}`}>
-        <p
-          className={`truncate tracking-widest ${isTarget ? "max-w-[140px] text-[10px] font-bold" : "max-w-[100px] text-[8px]"}`}
-          style={{ color: isSelected || isTarget ? "#E2E8F0" : config.color }}
-        >
-          {data.label}
-        </p>
-        <div className="mt-1 flex items-center justify-center gap-1 opacity-70">
-          <span className="text-[7px] text-[#718096]">R:{data.riskScore}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const nodeTypes = { evidenceNode: EvidenceNode, radarRings: RadarRingsNode };
-
-// ── Main Component ──
 export default function EvidenceGraph() {
-  const [selectedNode, setSelectedNode] = useState<GraphNodeData | null>(null);
-  const [targetId, setTargetId] = useState<string>("N001");
+  const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  const [targetId, setTargetId] = useState<string>("HUB_1");
   const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCriteria, setActiveCriteria] = useState<Set<string>>(
@@ -208,56 +67,168 @@ export default function EvidenceGraph() {
   );
   const [hops, setHops] = useState(2);
   const [showHopsDropdown, setShowHopsDropdown] = useState(false);
-  const reactFlowInstance = useRef<any>(null);
+  
+  const fgRef = useRef<any>(null);
 
-  // API-loaded data (replaces static mock imports)
-  const [graphNodesData, setGraphNodesData] = useState<GraphNodeData[]>([]);
+  // API-loaded data
+  const [graphNodesData, setGraphNodesData] = useState<any[]>([]);
   const [graphEdgesData, setGraphEdgesData] = useState<any[]>([]);
-  const [mapPinsData, setMapPinsData] = useState<any[]>([]);
+  
+  const [isExecuted, setIsExecuted] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
+
+  // Interactive Physics States
+  const [hoverNode, setHoverNode] = useState<any>(null);
+  const [highlightNodes, setHighlightNodes] = useState(new Set());
+  const [highlightLinks, setHighlightLinks] = useState(new Set());
+
+  // Radial Menu & Tooltip States
+  const [radialMenu, setRadialMenu] = useState<{ x: number, y: number, node: any } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number, y: number } | null>(null);
 
   // Store integration
-  const storeSelectedId = useAppStore((s) => s.selectedEntityId);
-  const storeSelectedType = useAppStore((s) => s.selectedEntityType);
-  const highlightedIds = useAppStore((s) => s.highlightedIds);
   const selectEntity = useAppStore((s) => s.selectEntity);
   const clearSelection = useAppStore((s) => s.clearSelection);
 
   useEffect(() => {
-    if (storeSelectedType === "node" && storeSelectedId) {
-      const node = graphNodesData.find((n) => n.id === storeSelectedId);
-      if (node) setSelectedNode(node);
-    }
-  }, [storeSelectedId, storeSelectedType, graphNodesData]);
-
-  useEffect(() => {
     setIsClient(true);
-    // Fetch graph topology and map pins from backend
-    api.graph.topology().then((res) => {
-      if (res.ok && res.data) {
-        setGraphNodesData(res.data.nodes.map((n: any) => ({
-          ...n,
-          linkedPinIds: [],
-        })));
-        setGraphEdgesData(res.data.edges);
-      }
-    });
-    api.map.pins().then((res) => {
-      if (res.ok && res.data) {
-        setMapPinsData(res.data);
-      }
-    });
   }, []);
 
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+        e.preventDefault();
+        if (!isExecuting) handleExecute();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        // Mock Append to Dossier
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExecuting]);
+
+  const handleExecute = useCallback(() => {
+    setIsExecuting(true);
+    setTimeout(() => {
+      api.graph.topology().then((res) => {
+        if (res.ok && res.data) {
+          setGraphNodesData(res.data.nodes);
+          setGraphEdgesData(res.data.edges);
+          setIsExecuted(true);
+          setIsExecuting(false);
+        }
+      });
+    }, 600);
+  }, []);
+
+  // Physics Tuning
+  useEffect(() => {
+    if (isExecuted && fgRef.current) {
+      fgRef.current.d3Force('charge').strength(-400).distanceMax(250);
+      fgRef.current.d3Force('link').distance(45).strength(1);
+    }
+  }, [isExecuted, graphNodesData]);
+
+  // Sync tooltip screen pos on animation frame if hovering
+  useEffect(() => {
+    let animationFrameId: number;
+    const syncTooltipPos = () => {
+      if (hoverNode && fgRef.current) {
+        const coords = fgRef.current.graph2ScreenCoords(hoverNode.x, hoverNode.y);
+        setTooltipPos(coords);
+      } else {
+        setTooltipPos(null);
+      }
+      animationFrameId = requestAnimationFrame(syncTooltipPos);
+    };
+    if (hoverNode) syncTooltipPos();
+    else setTooltipPos(null);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [hoverNode]);
+
   const handleNodeSelect = useCallback(
-    (nodeData: GraphNodeData) => {
+    (nodeData: any) => {
       setSelectedNode(nodeData);
+      setRadialMenu(null);
       const connectedIds = graphEdgesData
-        .filter((e) => e.source === nodeData.id || e.target === nodeData.id)
-        .map((e) => (e.source === nodeData.id ? e.target : e.source));
-      selectEntity(nodeData.id, "node", [...connectedIds, ...nodeData.linkedPinIds]);
+        .filter((e) => (e.source?.id || e.source) === nodeData.id || (e.target?.id || e.target) === nodeData.id)
+        .map((e) => ((e.source?.id || e.source) === nodeData.id ? (e.target?.id || e.target) : (e.source?.id || e.source)));
+      selectEntity(nodeData.id, "node", connectedIds);
+      
+      if (fgRef.current) {
+        fgRef.current.centerAt(nodeData.x, nodeData.y, 1000);
+        fgRef.current.zoom(2.5, 1000);
+      }
     },
     [selectEntity, graphEdgesData]
   );
+
+  const handleNodeRightClick = useCallback((node: any, event: MouseEvent) => {
+    event.preventDefault();
+    setRadialMenu({ x: event.clientX, y: event.clientY, node });
+  }, []);
+
+  const handleNodeHover = useCallback((node: any) => {
+    setHighlightNodes(new Set());
+    setHighlightLinks(new Set());
+    
+    if (node) {
+      const newHighlightNodes = new Set([node.id]);
+      const newHighlightLinks = new Set();
+      
+      graphEdgesData.forEach(link => {
+        const sourceId = link.source.id || link.source;
+        const targetId = link.target.id || link.target;
+        if (sourceId === node.id || targetId === node.id) {
+          newHighlightLinks.add(link);
+          newHighlightNodes.add(sourceId === node.id ? targetId : sourceId);
+        }
+      });
+      setHighlightNodes(newHighlightNodes);
+      setHighlightLinks(newHighlightLinks);
+    }
+    
+    setHoverNode(node || null);
+    
+    const container = document.getElementById('force-graph-container');
+    if (container) container.style.cursor = node ? 'pointer' : 'default';
+  }, [graphEdgesData]);
+
+  const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const config = nodeTypeConfig[node.nodeType] || nodeTypeConfig.username;
+    const isHighlighted = highlightNodes.has(node.id) || hoverNode?.id === node.id;
+    // SMART DIMMING: if hovering ANYTHING, and this node is NOT highlighted, dim heavily
+    const isDimmed = hoverNode && !isHighlighted;
+    
+    const isHub = node.nodeType === 'username';
+    const r = isHub ? 12 : 5; 
+    
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+    
+    if (isDimmed) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.shadowBlur = 0;
+      ctx.fill();
+    } else {
+      ctx.fillStyle = config.color;
+      ctx.shadowColor = config.color;
+      ctx.shadowBlur = isHighlighted ? 30 : (isHub ? 20 : 8);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      if (isHighlighted || (isHub && globalScale > 1.2)) {
+         ctx.font = `bold ${(isHub ? 12 : 10)/globalScale}px monospace`;
+         ctx.textAlign = 'center';
+         ctx.textBaseline = 'top';
+         ctx.fillStyle = '#f8fafc';
+         ctx.fillText(node.label, node.x, node.y + r + 6);
+      }
+    }
+  }, [highlightNodes, hoverNode]);
 
   const handleCloseInspector = useCallback(() => {
     setSelectedNode(null);
@@ -273,78 +244,110 @@ export default function EvidenceGraph() {
     });
   };
 
-  const getEdgeCriteria = useCallback((edge: typeof graphEdgesData[0]) => {
-    const label = edge.label.toLowerCase();
-    const isInfra = label.includes("pgp") || label.includes("key") || label.includes("shared");
-    if (isInfra) return "infrastructure";
-    const isFinancial = label.includes("payment") || label.includes("wallet") || label.includes("swap") || label.includes("receives");
-    if (isFinancial) return "financial";
-    return methodToCriteria[edge.contactMethod] || "communication";
-  }, []);
-
-  // ── Strict Deterministic Radial Layout Engine ──
-  const { rfNodes, rfEdges, positions } = useRadialLayout({
-    targetId,
-    activeCriteria,
-    hops,
-    highlightedIds,
-    selectedNode,
-    getEdgeCriteria,
-    handleNodeSelect,
-    graphNodesData,
-    graphEdgesData,
-  });
-
-  useEffect(() => {
-    if (reactFlowInstance.current && positions[targetId]) {
-      setTimeout(() => {
-        reactFlowInstance.current.setCenter(0, 0, { zoom: 0.8, duration: 800 });
-      }, 100);
-    }
-  }, [targetId, positions, hops]);
-
   const connectedEdges = useMemo(() => {
     if (!selectedNode) return [];
     return graphEdgesData.filter(
-      (e) => e.source === selectedNode.id || e.target === selectedNode.id
+      (e) => (e.source?.id || e.source) === selectedNode.id || (e.target?.id || e.target) === selectedNode.id
     );
   }, [selectedNode, graphEdgesData]);
 
+  // Filter edges based on vector criteria
+  const activeEdges = useMemo(() => {
+    return graphEdgesData.filter(e => activeCriteria.has(e.label?.toLowerCase() || 'financial'));
+  }, [graphEdgesData, activeCriteria]);
+
   return (
-    <div className="relative flex h-full overflow-hidden bg-card font-mono text-foreground">
+    <div className="flex h-full w-full bg-[#030712] relative overflow-hidden text-foreground">
+      
+      {/* ═══ 1. Radial Context Menu (Overlay) ═══ */}
+      <AnimatePresence>
+        {radialMenu && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed z-50 rounded-full h-40 w-40 flex items-center justify-center pointer-events-none"
+            style={{ left: radialMenu.x - 80, top: radialMenu.y - 80 }}
+          >
+            {/* Context menu background ring */}
+            <div className="absolute inset-0 rounded-full border border-slate-700/50 bg-[#0f111a]/80 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.8)]" />
+            
+            {/* Center target indicator */}
+            <div className="h-10 w-10 rounded-full border-2 border-primary bg-transparent absolute" />
+            
+            {/* Menu Items */}
+            <button className="absolute -top-3 flex flex-col items-center gap-1 text-slate-300 hover:text-white hover:-translate-y-1 transition-all pointer-events-auto group">
+               <div className="bg-slate-800 p-2 rounded-full border border-slate-600 group-hover:bg-primary/20 group-hover:border-primary"><Share2 className="h-4 w-4" /></div>
+               <span className="text-[9px] font-bold uppercase tracking-widest bg-black/50 px-1 rounded">Expand</span>
+            </button>
+            <button className="absolute bottom-2 -left-2 flex flex-col items-center gap-1 text-slate-300 hover:text-white hover:-translate-x-1 transition-all pointer-events-auto group">
+               <div className="bg-slate-800 p-2 rounded-full border border-slate-600 group-hover:bg-primary/20 group-hover:border-primary"><Target className="h-4 w-4" /></div>
+               <span className="text-[9px] font-bold uppercase tracking-widest bg-black/50 px-1 rounded">Isolate</span>
+            </button>
+            <button className="absolute bottom-2 -right-2 flex flex-col items-center gap-1 text-slate-300 hover:text-white hover:translate-x-1 transition-all pointer-events-auto group">
+               <div className="bg-slate-800 p-2 rounded-full border border-slate-600 group-hover:bg-primary/20 group-hover:border-primary"><Pin className="h-4 w-4" /></div>
+               <span className="text-[9px] font-bold uppercase tracking-widest bg-black/50 px-1 rounded">Pin Node</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ 2. Tooltip Analytics (Overlay) ═══ */}
+      <AnimatePresence>
+        {tooltipPos && hoverNode && !radialMenu && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="fixed z-40 bg-[#0f111a]/90 backdrop-blur-xl border border-slate-700 p-3 rounded-lg shadow-2xl pointer-events-none transform -translate-x-1/2 -translate-y-[120%]"
+            style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+               <div className="h-2 w-2 rounded-full" style={{ background: nodeTypeConfig[hoverNode.nodeType]?.color || '#fff' }} />
+               <span className="text-[10px] font-bold uppercase tracking-widest text-white">{hoverNode.label}</span>
+            </div>
+            <div className="h-10 w-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={mockSparklineData}>
+                  <Line type="monotone" dataKey="val" stroke={nodeTypeConfig[hoverNode.nodeType]?.color || '#3b82f6'} strokeWidth={2} dot={false} isAnimationActive={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1 text-right">30D Activity</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Graph Area */}
-      <div className="flex flex-1 flex-col min-w-0 relative">
+      <div className="relative flex flex-1 flex-col overflow-hidden" onClick={() => setRadialMenu(null)}>
         {/* ═══ 1. Dynamic Web Generator (Top Action Bar) ═══ */}
-        <div className="z-20 border-b border-[#2d3748] bg-card flex-shrink-0">
+        <div className="z-30 border-b border-slate-800/80 bg-[#0a0f18]/80 backdrop-blur-lg flex-shrink-0 shadow-lg">
           <div className="flex items-center gap-4 px-5 py-3">
             {/* Target Search */}
             <div className="relative flex-1 min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#4A90E2]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               <input
                 type="text"
                 placeholder="TARGET POI SEED..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-[#2d3748] bg-card py-1.5 pl-9 pr-3 text-[10px] uppercase tracking-widest text-[#E2E8F0] placeholder-slate-600 outline-none transition-colors focus:border-[#4A90E2]"
+                className="w-full border border-slate-700/50 bg-[#0f111a]/50 py-2 pl-10 pr-3 text-xs uppercase tracking-widest text-slate-200 placeholder-slate-600 outline-none transition-all hover:border-slate-600 focus:border-primary focus:bg-[#0f111a] rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
               />
             </div>
 
-            <div className="h-5 w-px bg-[#2d3748]" />
+            <div className="h-6 w-px bg-slate-800" />
 
             {/* Connection Criteria */}
-            <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-[#718096] mr-1">VECTORS:</span>
+            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-2">VECTORS</span>
               {edgeCriteria.map((c) => {
                 const isActive = activeCriteria.has(c.key);
                 return (
                   <button
                     key={c.key}
                     onClick={() => toggleCriteria(c.key)}
-                    className="flex items-center gap-1.5 border px-2 py-1 text-[9px] font-bold uppercase tracking-widest transition-all whitespace-nowrap"
+                    className="flex items-center gap-1.5 border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap rounded-md"
                     style={{
-                      borderColor: isActive ? c.color : "#2d3748",
+                      borderColor: isActive ? c.color : "#1e293b",
                       background: isActive ? `${c.color}15` : "transparent",
-                      color: isActive ? c.color : "#718096",
+                      color: isActive ? c.color : "#64748b",
+                      boxShadow: isActive ? `0 0 10px ${c.color}30` : "none"
                     }}
                   >
                     {c.label}
@@ -353,28 +356,25 @@ export default function EvidenceGraph() {
               })}
             </div>
 
-            <div className="h-5 w-px bg-[#2d3748]" />
+            <div className="h-6 w-px bg-slate-800" />
 
             {/* Web Depth */}
             <div className="relative">
               <button
                 onClick={() => setShowHopsDropdown(!showHopsDropdown)}
-                className="flex items-center gap-2 border border-[#2d3748] bg-card px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-[#E2E8F0] hover:border-[#4A90E2]"
+                className="flex items-center gap-2 border border-slate-700/50 bg-[#0f111a]/50 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-primary hover:bg-[#0f111a] rounded-md transition-colors"
               >
                 HOPS: {hops}
-                <ChevronDown className="h-3 w-3 text-[#718096]" />
+                <ChevronDown className="h-3 w-3 text-slate-500" />
               </button>
               {showHopsDropdown && (
-                <div className="absolute right-0 top-full z-50 mt-1 border border-[#2d3748] bg-card shadow-2xl">
+                <div className="absolute right-0 top-full z-dropdown mt-1 border border-slate-700 bg-[#0f111a] shadow-2xl rounded-md overflow-hidden">
                   {[1, 2, 3].map((n) => (
                     <button
                       key={n}
-                      onClick={() => {
-                        setHops(n);
-                        setShowHopsDropdown(false);
-                      }}
-                      className={`block w-full px-4 py-2 text-left text-[9px] font-bold uppercase tracking-widest transition-colors hover:bg-card ${
-                        hops === n ? "text-[#4A90E2] bg-[#4A90E2]/10" : "text-[#718096]"
+                      onClick={() => { setHops(n); setShowHopsDropdown(false); }}
+                      className={`block w-full px-6 py-2.5 text-left text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-slate-800 ${
+                        hops === n ? "text-primary bg-primary/10" : "text-slate-400"
                       }`}
                     >
                       {n} DEGREE
@@ -386,233 +386,281 @@ export default function EvidenceGraph() {
 
             {/* Spin Web Button */}
             <button 
-              onClick={() => reactFlowInstance.current?.setCenter(0, 0, { zoom: 0.8, duration: 800 })}
-              className="flex items-center gap-2 bg-[#4A90E2] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0f111a] transition-all hover:bg-[#3182CE] whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+              onClick={handleExecute}
+              disabled={isExecuting}
+              className={`group relative flex items-center gap-2 px-6 py-2 text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${isExecuting ? 'bg-primary/50 text-black cursor-wait' : 'bg-primary text-black hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105'}`}
             >
-              <Target className="h-3.5 w-3.5" />
-              EXECUTE
+              <Target className={`h-4 w-4 ${isExecuting ? 'animate-spin' : ''}`} />
+              {isExecuting ? 'EXECUTING...' : 'EXECUTE'}
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-1 text-[9px] font-bold opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none text-white z-50">Cmd/Ctrl + E</span>
             </button>
           </div>
         </div>
 
         {/* ═══ 2. The "Spider Web" Canvas ═══ */}
-        <div className="flex-1 relative">
-          {isClient && (
-            <ReactFlow
-              nodes={rfNodes}
-              edges={rfEdges}
-              nodeTypes={nodeTypes}
-              onInit={(instance: any) => {
-                reactFlowInstance.current = instance;
-              }}
-              minZoom={0.1}
-              maxZoom={2.5}
-              defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-              proOptions={{ hideAttribution: true }}
-              className="bg-card"
-            >
-              <Background color="transparent" />
-              
-              <Controls
-                position="top-right"
-                showInteractive={false}
-                style={{
-                  background: "#0f111a",
-                  borderColor: "#2d3748",
-                  borderRadius: "0",
-                  marginTop: "16px",
-                  marginRight: "16px",
-                }}
-              />
-              <MiniMap
-                position="bottom-right"
-                nodeColor={(n: any) => {
-                  if (n.data?.isTarget) return "#4A90E2";
-                  return "#2d3748";
-                }}
-                maskColor="rgba(15, 17, 26, 0.85)"
-                style={{
-                  borderRadius: "0",
-                  background: "#0f111a",
-                  border: "1px solid #2d3748",
-                }}
-              />
-            </ReactFlow>
+        <div className="flex-1 relative bg-[#030712] radial-gradient-dark" id="force-graph-container">
+          {!isExecuted ? (
+             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+               <div className="flex flex-col items-center justify-center opacity-40">
+                 <Target className="h-16 w-16 text-primary mb-6 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+                 <p className="text-slate-300 text-sm uppercase tracking-widest font-black">
+                   Enter a Target POI Seed and click Execute to generate the evidence graph.
+                 </p>
+               </div>
+             </div>
+          ) : null}
+          
+          {isClient && isExecuted && (
+            <div className="absolute inset-0" onContextMenu={(e) => e.preventDefault()}>
+                <ForceGraph2D
+                  ref={fgRef}
+                  graphData={{ nodes: graphNodesData, links: graphEdgesData }}
+                  nodeCanvasObject={drawNode}
+                  nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                    const isHub = node.nodeType === 'username';
+                    const r = (isHub ? 12 : 5) + 4; // Add 4px padding to the hitbox
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
+                    ctx.fill();
+                  }}
+                  onNodeHover={handleNodeHover}
+                  onNodeClick={handleNodeSelect}
+                  onNodeRightClick={handleNodeRightClick}
+                  onNodeDrag={(node, translate) => {
+                    node.fx = node.x; node.fy = node.y;
+                  }}
+                  onNodeDragEnd={(node) => {
+                    node.fx = node.x; node.fy = node.y;
+                  }}
+                  // DIRECTIONAL PARTICLE FLOW
+                  linkDirectionalParticles={2}
+                  linkDirectionalParticleWidth={2.5}
+                  linkDirectionalParticleSpeed={() => 0.005}
+                  linkDirectionalParticleColor={() => "rgba(255,255,255,0.8)"}
+                  
+                  linkWidth={link => highlightLinks.has(link) ? 2 : 1.2}
+                  linkColor={(link: any) => {
+                    const isDimmedLink = hoverNode && !highlightLinks.has(link);
+                    if (isDimmedLink) return 'rgba(255,255,255,0.02)';
+                    return 'rgba(255,255,255,0.25)';
+                  }}
+                  backgroundColor="#030712"
+                  d3AlphaDecay={0.15}
+                  d3VelocityDecay={0.85}
+                  cooldownTicks={100}
+                />
+            </div>
+          )}
+
+          {/* Minimap Overlay (Translucent SVG bounds) */}
+          {isExecuted && (
+            <div className="absolute bottom-20 right-6 z-20 w-32 h-32 bg-[#0f111a]/60 border border-slate-700 rounded-lg shadow-2xl backdrop-blur-md overflow-hidden pointer-events-none">
+              <svg width="100%" height="100%" viewBox="-300 -300 600 600" preserveAspectRatio="xMidYMid meet">
+                 {/* Links */}
+                 {activeEdges.map((e, i) => {
+                   const s = typeof e.source === 'object' ? e.source : graphNodesData.find(n => n.id === e.source);
+                   const t = typeof e.target === 'object' ? e.target : graphNodesData.find(n => n.id === e.target);
+                   if (!s || !t || s.x === undefined || t.x === undefined) return null;
+                   return <line key={i} x1={s.x} y1={s.y} x2={t.x} y2={t.y} stroke="rgba(255,255,255,0.1)" strokeWidth="2"/>
+                 })}
+                 {/* Nodes */}
+                 {graphNodesData.map((n, i) => {
+                   if (n.x === undefined) return null;
+                   return <circle key={i} cx={n.x} cy={n.y} r={n.nodeType === 'username' ? 20 : 8} fill={nodeTypeConfig[n.nodeType]?.color || '#fff'} />
+                 })}
+              </svg>
+              <div className="absolute bottom-1 right-1 text-[7px] text-slate-500 font-bold uppercase">Minimap</div>
+            </div>
+          )}
+
+          {/* Custom Zoom Controls */}
+          {isExecuted && (
+             <div className="absolute top-6 right-6 z-10 flex flex-col border border-slate-700 bg-[#0f111a]/80 shadow-2xl rounded-md overflow-hidden backdrop-blur-md">
+               <button onClick={() => fgRef.current?.zoom(fgRef.current.zoom() * 1.5, 400)} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 border-b border-slate-700 transition-colors focus:outline-none"><Plus className="h-4 w-4" /></button>
+               <button onClick={() => fgRef.current?.zoom(fgRef.current.zoom() / 1.5, 400)} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 border-b border-slate-700 transition-colors focus:outline-none"><div className="h-4 w-4 flex items-center justify-center"><div className="w-3 h-0.5 bg-current" /></div></button>
+               <button onClick={() => fgRef.current?.zoomToFit(400)} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none"><Crosshair className="h-4 w-4" /></button>
+             </div>
           )}
 
           {/* Floating Collapsible Legend Panel */}
-          <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-2">
-              <div className="border border-[#2d3748] bg-card p-3 max-w-[220px]">
-                <h4 className="text-[8px] font-bold uppercase tracking-widest text-[#718096] mb-2 border-b border-[#2d3748] pb-1">TAXONOMY</h4>
-                <div className="flex flex-col gap-1.5">
-                  {Object.entries(nodeTypeConfig).map(([key, config]) => {
-                    const LIcon = config.icon;
-                    return (
-                      <div key={key} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <LIcon className="h-3 w-3" style={{ color: config.color }} />
-                          <span className="text-[8px] font-bold tracking-widest text-[#E2E8F0]">{config.label}</span>
-                        </div>
+          <div className="absolute bottom-20 left-6 z-10 flex flex-col gap-2 pointer-events-none">
+              <div className="border border-slate-700/80 bg-[#0f111a]/80 p-4 max-w-[220px] rounded-lg shadow-2xl backdrop-blur-md">
+                <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-700 pb-2 flex items-center gap-2"><Lock className="h-3 w-3"/> TAXONOMY</h4>
+                <div className="flex flex-col gap-2.5">
+                  {Object.entries(nodeTypeConfig).map(([key, config]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2.5 w-2.5 rounded-full" style={{ background: config.color, boxShadow: `0 0 10px ${config.color}80` }} />
+                        <span className="text-[9px] font-bold tracking-widest text-slate-200">{config.label}</span>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
           </div>
+          
+          {/* Hacker Telemetry Footer */}
+          <div className="absolute bottom-0 inset-x-0 h-10 border-t border-slate-800 bg-black/80 backdrop-blur-md z-30 flex items-center justify-between px-6 font-mono text-[9px] uppercase tracking-widest text-slate-400 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] pointer-events-none">
+             <div className="flex items-center gap-6">
+                <span className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"/> SYSTEM LIVE</span>
+                <span>DATA INGEST: 67 EPS</span>
+                <span>CPU LOAD: 4%</span>
+             </div>
+             <div className="flex items-center gap-6 text-primary">
+                <span>ACTIVE NODES: {graphNodesData.length}</span>
+                <span>EDGES: {activeEdges.length}</span>
+                <span>FPS: 60.0</span>
+             </div>
+          </div>
+
         </div>
       </div>
 
       {/* ═══ 3. Data-Dense Inspector Panel ═══ */}
       {selectedNode && (() => {
-        const selConfig = nodeTypeConfig[selectedNode.type] || nodeTypeConfig.username;
+        const selConfig = nodeTypeConfig[selectedNode.nodeType] || nodeTypeConfig.username;
         const SelIcon = selConfig.icon;
         const role = roleConfig[selectedNode.suspectRole] || roleConfig.unknown;
         const isCurrentTarget = selectedNode.id === targetId;
-
-        // Mock hash generator
-        const mockHash = Array.from(selectedNode.id).reduce((acc, char) => acc + char.charCodeAt(0).toString(16), "8f43") + "a9b2c3d4e5f6";
+        const mockHash = Array.from(selectedNode.id).reduce((acc: string, char: any) => acc + char.charCodeAt(0).toString(16), "8f43") + "a9b2c3d4e5f6";
 
         return (
           <div
-            className="z-20 flex w-[360px] flex-shrink-0 flex-col border-l border-[#2d3748] bg-card overflow-hidden"
-            style={{
-              animation: "slideInRight 0.2s ease-out",
-            }}
+            className="z-drawer flex w-[420px] flex-shrink-0 flex-col border-l border-slate-700 bg-[#0a0f18]/95 backdrop-blur-2xl overflow-hidden shadow-2xl"
+            style={{ animation: "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
             {/* Dossier Header */}
-            <div className="flex items-center justify-between border-b border-[#2d3748] bg-card px-4 py-4 flex-shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center border" style={{ borderColor: selConfig.color, background: `${selConfig.color}15` }}>
-                  <SelIcon className="h-4 w-4" style={{ color: selConfig.color }} />
+            <div className="flex items-center justify-between border-b border-slate-700/50 bg-[#0f111a] px-5 py-5 flex-shrink-0">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border shadow-lg" style={{ borderColor: `${selConfig.color}50`, background: `${selConfig.color}15`, boxShadow: `0 0 20px ${selConfig.color}20` }}>
+                  <SelIcon className="h-6 w-6" style={{ color: selConfig.color }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: selConfig.color }}>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: selConfig.color }}>
                     {selConfig.label}
                   </p>
-                  <h3 className="text-sm font-bold text-[#E2E8F0] truncate uppercase tracking-wider">{selectedNode.label}</h3>
+                  <h3 className="text-lg font-black text-white truncate uppercase tracking-wider">{selectedNode.label}</h3>
                 </div>
               </div>
               <button
                 onClick={handleCloseInspector}
-                className="p-1 text-[#718096] transition-colors hover:text-[#E2E8F0] flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                className="p-1.5 text-slate-500 rounded-full hover:bg-slate-800 transition-colors hover:text-white flex-shrink-0 focus:outline-none"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
               {/* TARGET ACTION */}
-              <div className="p-4 border-b border-[#2d3748] shrink-0 bg-card">
+              <div className="p-5 border-b border-slate-700/50 shrink-0 bg-[#0a0f18]">
                  {isCurrentTarget ? (
-                   <div className="w-full flex items-center justify-center gap-2 bg-[#4A90E2]/10 py-2 text-[10px] font-bold uppercase tracking-widest text-[#4A90E2] border border-[#4A90E2]/30">
-                     <Target className="h-3.5 w-3.5" />
+                   <div className="w-full flex items-center justify-center gap-2 bg-primary/10 py-2.5 text-xs font-black uppercase tracking-widest text-primary border border-primary/30 rounded shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                     <Target className="h-4 w-4" />
                      PRIMARY TARGET LOCKED
                    </div>
                  ) : (
                    <button 
                     onClick={() => setTargetId(selectedNode.id)}
-                    className="w-full flex items-center justify-center gap-2 bg-[#E53E3E] py-2 text-[10px] font-bold uppercase tracking-widest text-[#0f111a] transition-all hover:bg-[#C53030] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                    className="w-full flex items-center justify-center gap-2 bg-[#ef4444] py-2.5 text-xs font-black uppercase tracking-widest text-white transition-all hover:bg-red-600 rounded shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] focus:outline-none"
                   >
-                    <Crosshair className="h-3.5 w-3.5" />
+                    <Crosshair className="h-4 w-4" />
                     DESIGNATE NEW TARGET
                   </button>
                  )}
               </div>
 
               {/* Status Badges */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-[#2d3748] shrink-0">
-                <span className="border border-[#718096] px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-[#E2E8F0]">
-                  RISK: {selectedNode.riskScore}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/50 shrink-0 bg-black/20">
+                <span className="border border-slate-600 px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest text-slate-300 shadow-inner">
+                  RISK: <span className="text-white">{selectedNode.riskScore}</span>
                 </span>
                 <span
-                  className="border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest"
-                  style={{
-                    borderColor: role.color,
-                    color: role.color,
-                    background: `${role.color}10`,
-                  }}
+                  className="border px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest shadow-inner"
+                  style={{ borderColor: role.color, color: role.color, background: `${role.color}10` }}
                 >
                   [{role.label}]
                 </span>
               </div>
 
-              {/* Strict Grid Metadata */}
-              <div className="px-4 py-3 border-b border-[#2d3748] shrink-0">
-                <h4 className="mb-2 text-[8px] font-bold uppercase tracking-widest text-[#718096]">
-                  ENTITY METADATA
-                </h4>
-                <div className="border border-[#2d3748] bg-card">
-                  {Object.entries(selectedNode.metadata).map(([key, value], i, arr) => (
-                    <div
-                      key={key}
-                      className={`grid grid-cols-3 px-3 py-1.5 text-[9px] ${
-                        i < arr.length - 1 ? "border-b border-[#2d3748]" : ""
-                      }`}
-                    >
-                      <span className="col-span-1 font-bold uppercase tracking-wider text-[#718096]">
-                        {key}
-                      </span>
-                      <span className="col-span-2 font-medium text-[#E2E8F0] text-right truncate">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
+              {/* INTERACTIVE PLATFORM BADGES */}
+              {selectedNode.metadata && (
+                <div className="px-5 py-4 border-b border-slate-700/50 shrink-0">
+                  <h4 className="mb-3 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    ENTITY METADATA
+                  </h4>
+                  <div className="border border-slate-700/50 rounded-lg overflow-hidden bg-black/40 shadow-inner">
+                    {Object.entries(selectedNode.metadata).map(([key, value]: any, i, arr) => (
+                      <div key={key} className={`flex items-center justify-between px-4 py-2.5 text-[10px] ${i < arr.length - 1 ? "border-b border-slate-700/50" : ""}`}>
+                        <span className="font-bold uppercase tracking-wider text-slate-400">{key}</span>
+                        {key.toLowerCase() === 'platform' ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1.5 bg-slate-800 border border-slate-600 px-2 py-0.5 rounded-full text-slate-200 font-bold"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"/> AlphaBay</span>
+                            <span className="flex items-center gap-1.5 bg-slate-800 border border-slate-600 px-2 py-0.5 rounded-full text-slate-200 font-bold"><div className="h-1.5 w-1.5 rounded-full bg-[#ef4444]"/> Hydra</span>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-slate-200 text-right truncate">{value}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Intel Summary */}
-              <div className="px-4 py-3 border-b border-[#2d3748] shrink-0">
-                <h4 className="mb-1.5 text-[8px] font-bold uppercase tracking-widest text-[#718096]">
-                  INTELLIGENCE BRIEF
-                </h4>
-                <p className="text-[10px] leading-relaxed text-[#A0AEC0] uppercase tracking-wide">{selectedNode.details}</p>
+              <div className="px-5 py-4 border-b border-slate-700/50 shrink-0 bg-black/20">
+                <h4 className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-500">INTELLIGENCE BRIEF</h4>
+                <p className="text-[11px] leading-relaxed text-slate-300 font-serif border-l-2 border-primary/50 pl-3">{selectedNode.details}</p>
               </div>
 
-              {/* Links */}
-              <div className="px-4 py-3 shrink-0 mb-4">
-                <h4 className="mb-2 text-[8px] font-bold uppercase tracking-widest text-[#718096] flex items-center gap-1">
-                  <Link2 className="h-3 w-3" />
-                  CORRELATED ENTITIES ({connectedEdges.length})
+              {/* Dense Data Table: Correlated Entities */}
+              <div className="px-5 py-4 shrink-0 mb-4 flex-1">
+                <h4 className="mb-3 text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                  <Link2 className="h-3 w-3" /> CORRELATED ENTITIES ({connectedEdges.length})
                 </h4>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {connectedEdges.map((edge) => {
-                    const connectedId =
-                      edge.source === selectedNode.id ? edge.target : edge.source;
+                    const connectedId = (edge.source?.id || edge.source) === selectedNode.id ? (edge.target?.id || edge.target) : (edge.source?.id || edge.source);
                     const connectedNode = graphNodesData.find((n) => n.id === connectedId);
                     if (!connectedNode) return null;
-                    const cfg = nodeTypeConfig[connectedNode.type];
+                    const cfg = nodeTypeConfig[connectedNode.nodeType] || nodeTypeConfig.username;
                     const ConnIcon = cfg.icon;
+                    const linkStrength = Math.floor(Math.random() * 60) + 40; // mock 40-100%
+                    
                     return (
-                      <button
-                        key={edge.id}
-                        onClick={() => {
-                          const node = graphNodesData.find((n) => n.id === connectedNode.id);
-                          if (node) {
-                            handleNodeSelect(node);
-                            // Pan to this node (re-center graph)
-                            if (reactFlowInstance.current) {
-                              const pos = reactFlowInstance.current.getNode(connectedNode.id)?.position;
-                              if (pos) {
-                                reactFlowInstance.current.setCenter(pos.x, pos.y, { zoom: 1.2, duration: 800 });
-                              }
-                            }
-                          }
-                        }}
-                        className="flex w-full items-center gap-2 border border-[#2d3748] bg-card px-2 py-1.5 text-left transition-all hover:border-[#4A90E2] group"
-                      >
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-[#2d3748]">
-                          <ConnIcon className="h-3 w-3" style={{ color: cfg.color }} />
+                      <div key={edge.id} className="flex flex-col border border-slate-700/50 bg-[#0f111a] rounded-lg overflow-hidden group hover:border-primary/50 transition-colors">
+                        <button onClick={() => handleNodeSelect(connectedNode)} className="flex items-center gap-3 p-2.5 w-full text-left">
+                           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-800 border" style={{ borderColor: `${cfg.color}50` }}>
+                             <ConnIcon className="h-4 w-4" style={{ color: cfg.color }} />
+                           </div>
+                           <div className="flex-1 min-w-0">
+                             <div className="flex justify-between items-center mb-0.5">
+                               <p className="text-[10px] font-black text-white uppercase tracking-widest truncate">{connectedNode.label}</p>
+                               <ExternalLink className="h-3 w-3 text-slate-500 group-hover:text-primary transition-colors" />
+                             </div>
+                             <p className="text-[8px] text-slate-500 uppercase tracking-widest truncate">{edge.label}</p>
+                           </div>
+                        </button>
+                        {/* Dense Table Metadata (Link Strength + Sparkline) */}
+                        <div className="flex items-center gap-4 bg-black/40 px-3 py-1.5 border-t border-slate-800">
+                           <div className="flex-1">
+                             <div className="flex justify-between text-[7px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                               <span>Link Strength</span>
+                               <span className="text-primary">{linkStrength}%</span>
+                             </div>
+                             <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                               <div className="h-full bg-gradient-to-r from-primary to-cyan-300" style={{ width: `${linkStrength}%` }}/>
+                             </div>
+                           </div>
+                           <div className="h-6 w-16">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={mockSparklineData}>
+                                  <Area type="monotone" dataKey="val" stroke={cfg.color} strokeWidth={1} fill={cfg.color} fillOpacity={0.2} isAnimationActive={false}/>
+                                </AreaChart>
+                              </ResponsiveContainer>
+                           </div>
                         </div>
-                        <div className="flex-1 overflow-hidden min-w-0">
-                          <p className="text-[9px] font-bold text-[#E2E8F0] uppercase tracking-widest truncate">
-                            {connectedNode.label}
-                          </p>
-                          <p className="text-[7px] text-[#718096] uppercase tracking-widest truncate">
-                            {edge.label}
-                          </p>
-                        </div>
-                        <ExternalLink className="h-3 w-3 text-[#718096] group-hover:text-[#4A90E2] flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background" />
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -620,14 +668,15 @@ export default function EvidenceGraph() {
             </div>
 
             {/* Forensic Footer */}
-            <div className="border-t border-[#2d3748] p-3 bg-card flex-shrink-0 mt-auto">
-              <div className="flex items-center justify-between mb-3 text-[7px] text-[#718096] font-bold tracking-widest uppercase">
-                <span className="flex items-center gap-1"><Hash className="h-3 w-3"/> SHA-256</span>
-                <span>{mockHash}</span>
+            <div className="border-t border-slate-700 p-4 bg-[#0a0f18] flex-shrink-0 z-20">
+              <div className="flex items-center justify-between mb-4 text-[8px] text-slate-500 font-bold tracking-widest uppercase bg-black/30 p-2 rounded border border-slate-800">
+                <span className="flex items-center gap-1.5"><Hash className="h-3 w-3 text-slate-400"/> SHA-256 SUM</span>
+                <span className="font-mono text-slate-400">{mockHash}</span>
               </div>
-              <button className="flex w-full items-center justify-center gap-2 border border-[#2d3748] py-2 text-[9px] font-bold uppercase tracking-widest text-[#E2E8F0] transition-colors hover:bg-[#2d3748] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-                <Plus className="h-3 w-3" />
+              <button className="group relative flex w-full items-center justify-center gap-2 rounded border border-slate-600 bg-slate-800 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-200 transition-all hover:bg-slate-700 hover:border-slate-500 focus:outline-none overflow-hidden shadow-inner">
+                <Plus className="h-3.5 w-3.5" />
                 APPEND TO DOSSIER
+                <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-1 text-[8px] font-bold opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none text-white z-50 transition-all">Cmd/Ctrl + D</span>
               </button>
             </div>
           </div>
@@ -638,6 +687,9 @@ export default function EvidenceGraph() {
         @keyframes slideInRight {
           from { transform: translateX(100%); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
+        }
+        .radial-gradient-dark {
+          background: radial-gradient(circle at 50% 50%, #0a0f18 0%, #030712 100%);
         }
       `}} />
     </div>

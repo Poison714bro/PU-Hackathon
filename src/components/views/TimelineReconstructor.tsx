@@ -171,6 +171,7 @@ export default function TimelineReconstructor() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchStep, setSearchStep] = useState(0);
   const [hasResults, setHasResults] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [dossierData, setDossierData] = useState<{ entityId: string; primaryAlias: string; riskScore: number; status: string; financialProfile: { totalVolumeUSD: number; peakOperationPeriod: string; genesisDate: string; coinJoinRounds: number; }; } | null>(null);
 
   // Brush state
@@ -191,12 +192,16 @@ export default function TimelineReconstructor() {
     
     setIsSearching(true);
     setHasResults(false);
+    setSearchError(null);
     setSearchStep(1);
 
     // Simulate multi-step loading visually
     const t1 = setTimeout(() => setSearchStep(2), 1200); // Scraping Archives
     const t2 = setTimeout(() => setSearchStep(3), 2500); // Running Stylometry
     const t3 = setTimeout(() => setSearchStep(4), 3800); // Reconstructing
+    
+    let success = false;
+    let errorMsg = null;
 
     try {
       const res = await fetch('/api/reconstruct', {
@@ -208,15 +213,23 @@ export default function TimelineReconstructor() {
       
       if (data && !data.error) {
         setDossierData(data);
+        success = true;
+      } else {
+        errorMsg = data.error || "No data found for this entity.";
       }
     } catch (err) {
       console.error(err);
+      errorMsg = "Failed to reconstruct timeline.";
     } finally {
       // Ensure minimum UI loading time for visual effect
       setTimeout(() => {
         setIsSearching(false);
-        setHasResults(true);
-        setBrushRange({ startIndex: 0, endIndex: unifiedGraphData.length - 1 });
+        if (success) {
+          setHasResults(true);
+          setBrushRange({ startIndex: 0, endIndex: unifiedGraphData.length - 1 });
+        } else {
+          setSearchError(errorMsg);
+        }
       }, Math.max(0, 4500));
     }
   };
@@ -234,10 +247,10 @@ export default function TimelineReconstructor() {
   }, [hasResults, activeGraphData]);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden bg-background text-foreground hide-scrollbar scroll-smooth">
+    <div className="flex h-full flex-col bg-background">
       
       {/* Search Header */}
-      <div className="z-20 border-b border-border bg-background/95 px-8 py-6 backdrop-blur-md sticky top-0 shrink-0">
+      <div className="z-header border-b border-border bg-background/95 px-8 py-6 backdrop-blur-md sticky top-0 shrink-0">
         <form onSubmit={handleSearch} className="mx-auto max-w-4xl">
           <div className="relative flex items-center">
             <Search className="absolute left-4 h-5 w-5 text-zinc-500" />
@@ -257,6 +270,19 @@ export default function TimelineReconstructor() {
               Reconstruct
             </button>
           </div>
+          <AnimatePresence>
+            {searchError && !isSearching && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }} 
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 flex items-center gap-2 text-sm text-red-400 justify-center"
+              >
+                <ShieldAlert className="h-4 w-4" />
+                {searchError}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </form>
 
         {/* Loading Sequence */}
@@ -501,19 +527,16 @@ export default function TimelineReconstructor() {
       <AnimatePresence>
         {selectedEvent && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
               onClick={() => setSelectedEvent(null)}
-              className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 right-0 top-0 z-40 w-full max-w-md border-l border-border bg-card shadow-2xl"
+              className="fixed bottom-0 right-0 top-0 z-drawer w-full max-w-md border-l border-border bg-card shadow-2xl"
             >
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-background">
