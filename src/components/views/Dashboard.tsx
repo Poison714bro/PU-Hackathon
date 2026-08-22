@@ -16,6 +16,7 @@ import {
   Zap,
   Download,
   Loader2,
+  X,
 } from "lucide-react";
 import {
   AreaChart,
@@ -31,7 +32,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { api, type KpiData, type FeedItem, type ChartData } from "@/lib/apiClient";
 import {
   formatNumber,
@@ -133,17 +134,21 @@ function KpiCard({
 
 // ── Custom Chart Tooltip ──
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
-  if (!active || !payload) return null;
+  if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="tooltip-content">
-      <p className="mb-1 font-medium">{label}</p>
-      {payload.map((entry: Record<string, any>, i: number) => (
-        <div key={i} className="flex items-center gap-2 text-[11px]">
-          <div className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
-          <span className="text-muted-foreground">{entry.name}:</span>
-          <span className="font-medium text-foreground">{entry.value}</span>
-        </div>
-      ))}
+    <div className="rounded-lg border border-slate-800 bg-[#0a0f18]/95 p-3 shadow-xl backdrop-blur-md">
+      <p className="mb-2 text-xs font-semibold text-white">{label}</p>
+      <div className="space-y-1.5">
+        {payload.map((entry: Record<string, any>, i: number) => (
+          <div key={i} className="flex items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full shadow-sm" style={{ background: entry.color }} />
+              <span className="text-slate-400 capitalize">{entry.name}</span>
+            </div>
+            <span className="font-semibold text-white">{entry.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -175,6 +180,16 @@ export default function Dashboard() {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [charts, setCharts] = useState<ChartData | null>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
+
+  // Drug Category Modal State
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [drugDetailsData, setDrugDetailsData] = useState<{name: string, count: number}[]>([]);
+  const [isDrugDetailsLoading, setIsDrugDetailsLoading] = useState(false);
+
+  // Weekly Activity Chart State
+  const [visibleSeries, setVisibleSeries] = useState({ listings: true, transactions: true, alerts: true });
+  const [timeRange, setTimeRange] = useState("7D");
 
   useEffect(() => {
     let cancelled = false;
@@ -254,6 +269,22 @@ export default function Dashboard() {
     category: f.category,
     details: f.summary,
   }));
+
+  const handleCategoryClick = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setIsDetailsModalOpen(true);
+    setIsDrugDetailsLoading(true);
+    try {
+      const res = await api.dashboard.drugDetails(categoryName);
+      if (res.ok && res.data) {
+        setDrugDetailsData(res.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsDrugDetailsLoading(false);
+    }
+  };
   
   return (
     <div className="grid-bg min-h-full p-6">
@@ -323,7 +354,7 @@ export default function Dashboard() {
         {/* Charts Row */}
         <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Activity Chart */}
-          <motion.div variants={itemVariants} className="glass-card col-span-2 p-6">
+          <motion.div variants={itemVariants} className="glass-card col-span-2 flex flex-col p-6">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-white">Weekly Activity</h3>
@@ -331,42 +362,105 @@ export default function Dashboard() {
                   Listings, transactions, and alert trends
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-cyan-400" />
-                  <span className="text-[10px] text-muted-foreground">Listings</span>
+              <div className="flex items-center gap-4">
+                {/* Time Range Selector */}
+                <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/50 p-1">
+                  {["7D", "30D", "90D"].map(range => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${
+                        timeRange === range ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-purple-400" />
-                  <span className="text-[10px] text-muted-foreground">Transactions</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-red-400" />
-                  <span className="text-[10px] text-muted-foreground">Alerts</span>
+                
+                {/* Legend Filter Pills */}
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setVisibleSeries(s => ({...s, listings: !s.listings}))}
+                    className={`flex items-center gap-1.5 rounded-full border px-2 py-1 transition-all ${
+                      visibleSeries.listings ? "border-cyan-500/30 bg-cyan-500/10" : "border-slate-800 bg-transparent opacity-50 grayscale hover:opacity-100"
+                    }`}
+                  >
+                    <div className="h-2 w-2 rounded-full bg-cyan-400" />
+                    <span className="text-[10px] text-slate-300">Listings</span>
+                  </button>
+                  <button 
+                    onClick={() => setVisibleSeries(s => ({...s, transactions: !s.transactions}))}
+                    className={`flex items-center gap-1.5 rounded-full border px-2 py-1 transition-all ${
+                      visibleSeries.transactions ? "border-purple-500/30 bg-purple-500/10" : "border-slate-800 bg-transparent opacity-50 grayscale hover:opacity-100"
+                    }`}
+                  >
+                    <div className="h-2 w-2 rounded-full bg-purple-400" />
+                    <span className="text-[10px] text-slate-300">Transactions</span>
+                  </button>
+                  <button 
+                    onClick={() => setVisibleSeries(s => ({...s, alerts: !s.alerts}))}
+                    className={`flex items-center gap-1.5 rounded-full border px-2 py-1 transition-all ${
+                      visibleSeries.alerts ? "border-red-500/30 bg-red-500/10" : "border-slate-800 bg-transparent opacity-50 grayscale hover:opacity-100"
+                    }`}
+                  >
+                    <div className="h-2 w-2 rounded-full bg-red-400" />
+                    <span className="text-[10px] text-slate-300">Alerts</span>
+                  </button>
                 </div>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={activityChartData}>
-                <defs>
-                  <linearGradient id="gradCyan" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#00d4ff" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradPurple" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#B026FF" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#B026FF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
-                <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={{ stroke: "#1e293b" }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="listings" stroke="#00d4ff" fill="url(#gradCyan)" strokeWidth={2} name="Listings" />
-                <Area type="monotone" dataKey="transactions" stroke="#B026FF" fill="url(#gradPurple)" strokeWidth={2} name="Transactions" />
-                <Area type="monotone" dataKey="alerts" stroke="#FF0040" fill="transparent" strokeWidth={2} strokeDasharray="5 5" name="Alerts" />
-              </AreaChart>
-            </ResponsiveContainer>
+            
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={activityChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradCyan" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#00d4ff" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradPurple" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#B026FF" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#B026FF" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  {/* Clean up gridlines: remove vertical, soften horizontal */}
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  {/* Styled axes */}
+                  <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tickLine={false} dy={10} />
+                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} dx={-10} />
+                  
+                  {/* Interactive Crosshair Tooltip */}
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "4 4" }} />
+                  
+                  {visibleSeries.listings && (
+                    <Area type="monotone" dataKey="listings" stroke="#00d4ff" fill="url(#gradCyan)" strokeWidth={2} name="listings" activeDot={{ r: 4, strokeWidth: 0 }} />
+                  )}
+                  {visibleSeries.transactions && (
+                    <Area type="monotone" dataKey="transactions" stroke="#B026FF" fill="url(#gradPurple)" strokeWidth={2} strokeDasharray="3 3" name="transactions" activeDot={{ r: 4, strokeWidth: 0 }} />
+                  )}
+                  {visibleSeries.alerts && (
+                    <Area type="monotone" dataKey="alerts" stroke="#FF0040" fill="transparent" strokeWidth={2} strokeDasharray="5 5" name="alerts" activeDot={{ r: 4, strokeWidth: 0 }} />
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* KPI Summary Badges aligned along the bottom edge */}
+            <div className="mt-4 grid grid-cols-3 gap-4 border-t border-slate-800/50 pt-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Total Volume</span>
+                <span className="text-sm font-medium text-white">1,420 Listings</span>
+              </div>
+              <div className="flex flex-col border-l border-slate-800/50 pl-4">
+                <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Peak Day</span>
+                <span className="text-sm font-medium text-white">Saturday &middot; 230 Tx</span>
+              </div>
+              <div className="flex flex-col border-l border-slate-800/50 pl-4">
+                <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">Alert Spike</span>
+                <span className="text-sm font-medium text-emerald-400">+14% vs last week</span>
+              </div>
+            </div>
           </motion.div>
 
           {/* Drug Distribution Pie */}
@@ -386,7 +480,12 @@ export default function Dashboard() {
                     stroke="none"
                   >
                     {drugDistributionData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
+                      <Cell 
+                        key={index} 
+                        fill={entry.color} 
+                        className="cursor-pointer transition-transform hover:scale-[1.05]" 
+                        onClick={() => handleCategoryClick(entry.name)} 
+                      />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
@@ -395,12 +494,16 @@ export default function Dashboard() {
             </div>
             <div className="mt-2 space-y-1.5">
               {drugDistributionData.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-[11px]">
+                <div 
+                  key={item.name} 
+                  className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-[11px] transition-colors hover:bg-slate-800/50"
+                  onClick={() => handleCategoryClick(item.name)}
+                >
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                    <span className="text-muted-foreground">{item.name}</span>
+                    <div className="h-2 w-2 rounded-full shadow-sm" style={{ background: item.color }} />
+                    <span className="text-muted-foreground transition-colors hover:text-white">{item.name}</span>
                   </div>
-                  <span className="font-medium text-foreground">{item.value}%</span>
+                  <span className="font-medium text-foreground">{item.value}</span>
                 </div>
               ))}
             </div>
@@ -450,6 +553,81 @@ export default function Dashboard() {
           <DashboardAlerts alertsData={alertsData} />
         </motion.div>
       </div>
+
+      {/* Drug Category Details Modal */}
+      <AnimatePresence>
+        {isDetailsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailsModalOpen(false)}
+              className="absolute inset-0 bg-[#030711]/80 backdrop-blur-sm"
+            />
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg rounded-xl border border-slate-800 bg-[#0a0f18] p-6 shadow-2xl"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    {drugDistributionData.find(d => d.name === selectedCategory)?.color && (
+                      <div className="h-3 w-3 rounded-full" style={{ background: drugDistributionData.find(d => d.name === selectedCategory)?.color }} />
+                    )}
+                    {selectedCategory}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">Detailed database breakdown by specific drug type.</p>
+                </div>
+                <button
+                  onClick={() => setIsDetailsModalOpen(false)}
+                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-slate-800/50 bg-[#070a10]">
+                {isDrugDetailsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+                    <p className="mt-2 text-xs text-slate-400">Querying database...</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left text-sm">
+                    <thead className="sticky top-0 bg-[#0a0f18] text-xs font-semibold uppercase text-slate-400">
+                      <tr>
+                        <th className="border-b border-slate-800 px-4 py-3">Specific Type</th>
+                        <th className="border-b border-slate-800 px-4 py-3 text-right">Listing Count</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50">
+                      {drugDetailsData.length === 0 ? (
+                        <tr>
+                          <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground">
+                            No granular details found.
+                          </td>
+                        </tr>
+                      ) : (
+                        drugDetailsData.map((d, i) => (
+                          <tr key={i} className="transition-colors hover:bg-slate-800/30">
+                            <td className="px-4 py-3 font-medium text-slate-200">{d.name}</td>
+                            <td className="px-4 py-3 text-right text-slate-400">{d.count}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,0 +1,99 @@
+{
+  "IntelEntity": [
+    {
+      "id": "ent-op-raptor-01",
+      "primaryAlias": "Operation RapTor Suspects",
+      "category": "Drugs, Weapons, Counterfeit Goods",
+      "colorHex": "#ef4444",
+      "riskScore": 95.0,
+      "status": "Dismantled (270 Arrested)",
+      "firstSeen": "2023-01-01T00:00:00Z",
+      "lastActive": "2025-08-01T00:00:00Z",
+      "summary": "270 dark web vendors and buyers arrested across four continents. Linked to Nemesis, Tor2Door, Bohemia, and Kingdom Markets."
+    },
+    {
+      "id": "ent-torzon-01",
+      "primaryAlias": "TorZon Market",
+      "category": "Darknet Market",
+      "colorHex": "#8b5cf6",
+      "riskScore": 99.0,
+      "status": "Active",
+      "firstSeen": "2025-07-01T00:00:00Z",
+      "lastActive": "2026-08-22T00:00:00Z",
+      "summary": "Dominant Western-facing DNM that emerged following the exit scam of Abacus Market in July 2025."
+    },
+    {
+      "id": "ent-op-fabryka-01",
+      "primaryAlias": "Operation Fabryka Superlabs",
+      "category": "Synthetic Amphetamines",
+      "colorHex": "#f97316",
+      "riskScore": 90.0,
+      "status": "Dismantled (24 Labs)",
+      "firstSeen": "2024-01-01T00:00:00Z",
+      "lastActive": "2026-08-01T00:00:00Z",
+      "summary": "24 industrial-scale synthetic drug superlabs shut down across Belgium, Czechia, Germany, Netherlands, Poland, and Spain."
+    },
+    {
+      "id": "ent-cn-telegram-01",
+      "primaryAlias": "Chinese Telegram Fraud Syndicate",
+      "category": "Compromised Payment Data",
+      "colorHex": "#eab308",
+      "riskScore": 88.0,
+      "status": "Active",
+      "firstSeen": "2025-01-01T00:00:00Z",
+      "lastActive": "2026-08-22T00:00:00Z",
+      "summary": "B2B wholesale network operating on Telegram, filling the vacuum left by traditional Russian-focused fraud shops."
+    }
+  ],
+  "CryptoWallet": [
+    {
+      "id": "cw-dnm-aggregate-2025",
+      "address": "aggregate-dnm-flows-2025",
+      "currency": "Crypto Aggregate",
+      "observedVolumeUSD": 2600000000,
+      "entityId": "ent-torzon-01"
+    },
+    {
+      "id": "cw-fraud-aggregate-2026",
+      "address": "aggregate-fraud-flows-2026",
+      "currency": "Crypto Aggregate",
+      "observedVolumeUSD": 87500000,
+      "entityId": "ent-cn-telegram-01"
+    }
+  ],
+  "FeedEntry": [
+    {
+      "id": "fe-raptor-01",
+      "source": "Europol Press Release",
+      "sourceType": "osint",
+      "riskScore": 95.0,
+      "category": "Law Enforcement Action",
+      "details": "Operation RapTor led to 270 arrests globally. Targets were identified via intelligence from Nemesis, Tor2Door, Bohemia and Kingdom Markets.",
+      "timestamp": "2026-08-22T00:00:00Z",
+      "severity": "critical",
+      "entityId": "ent-op-raptor-01"
+    },
+    {
+      "id": "fe-chainalysis-01",
+      "source": "Chainalysis 2026 Report",
+      "sourceType": "blockchain",
+      "riskScore": 80.0,
+      "category": "Market Migration",
+      "details": "TorZon Market emerged as the primary Western successor following the closure of Abacus Market.",
+      "timestamp": "2026-08-22T00:00:00Z",
+      "severity": "high",
+      "entityId": "ent-torzon-01"
+    },
+    {
+      "id": "fe-fabryka-01",
+      "source": "Europol Reports",
+      "sourceType": "osint",
+      "riskScore": 90.0,
+      "category": "Seizure",
+      "details": "Operation Fabryka dismantled 24 synthetic amphetamine superlabs across Western Europe.",
+      "timestamp": "2026-08-22T00:00:00Z",
+      "severity": "critical",
+      "entityId": "ent-op-fabryka-01"
+    }
+  ]
+}

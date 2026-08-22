@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ── Users & RBAC ──
+model User {
+  id             String   @id @default(uuid())
+  username       String   @unique
+  email          String   @unique
+  passwordHash   String
+  role           String   @default("ANALYST") // Was Enum Role
+  clearanceLevel Int      @default(1)       // 1, 2, or 3
+  createdAt      DateTime @default(now())
+}
+
+// ── Entities (Targets / Suspects) ──
+model IntelEntity {
+  id             String   @id @default(uuid())
+  primaryAlias   String
+  category       String
+  colorHex       String
+  riskScore      Float
+  status         String
+  firstSeen      DateTime
+  lastActive     DateTime
+  summary        String
+
+  // Relationships
+  cryptoWallets  CryptoWallet[]
+  pgpKeys        PGPKey[]
+  feedEntries    FeedEntry[]
+  mapIncidents   MapIncident[]
+  
+  // Graph Relationships
+  edgesSource    GraphEdge[] @relation("SourceEntity")
+  edgesTarget    GraphEdge[] @relation("TargetEntity")
+}
+
+// ── Entity Identifiers ──
+model CryptoWallet {
+  id                String       @id @default(uuid())
+  address           String       @unique
+  currency          String       
+  observedVolumeUSD Float
+  entityId          String
+  entity            IntelEntity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model PGPKey {
+  id          String      @id @default(uuid())
+  fingerprint String      @unique
+  shortKeyId  String
+  entityId    String
+  entity      IntelEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+// ── Intelligence Data (Feed / Alerts / Map) ──
+model FeedEntry {
+  id          String      @id @default(uuid())
+  source      String
+  sourceType  String
+  riskScore   Float
+  category    String
+  details     String
+  timestamp   DateTime
+  severity    String
+  
+  entityId    String?
+  entity      IntelEntity? @relation(fields: [entityId], references: [id])
+}
+
+model MapIncident {
+  id           String      @id @default(uuid())
+  lat          Float
+  lng          Float
+  label        String
+  details      String
+  drugCategory String
+  riskScore    Float
+  date         DateTime
+  originRoute  String?       // JSON array of lat/lng stored as String for SQLite
+
+  entityId     String?
+  entity       IntelEntity? @relation(fields: [entityId], references: [id])
+}
+
+// ── Graph Edges (Relationships) ──
+model GraphEdge {
+  id       String       @id @default(uuid())
+  sourceId String
+  targetId String
+  label    String
+  strength Float?
+
+  source   IntelEntity  @relation("SourceEntity", fields: [sourceId], references: [id])
+  target   IntelEntity  @relation("TargetEntity", fields: [targetId], references: [id])
+}

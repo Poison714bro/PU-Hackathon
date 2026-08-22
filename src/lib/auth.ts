@@ -28,6 +28,27 @@ export async function authenticate(
   usernameOrEmail: string,
   passwordPlain: string
 ): Promise<{ success: boolean; user?: User; token?: string; error?: string }> {
+  // Mock login bypass for all role levels
+  if (passwordPlain === 'password') {
+    const roleMapping: Record<string, string> = {
+      admin: 'ADMIN',
+      agent: 'INVESTIGATOR',
+      analyst: 'ANALYST',
+    };
+    
+    const mockRole = roleMapping[usernameOrEmail.toLowerCase()];
+    if (mockRole) {
+      const frontendUser: User = {
+        id: `mock-${usernameOrEmail}`,
+        username: usernameOrEmail,
+        email: `${usernameOrEmail}@cyberintel.gov`,
+        clearanceLevel: CLEARANCE_MAP[mockRole] || 1,
+        role: ROLE_MAP[mockRole] || 'Analyst',
+      };
+      return { success: true, user: frontendUser, token: "mock-jwt-token-123" };
+    }
+  }
+
   const result = await api.auth.login(usernameOrEmail, passwordPlain);
 
   if (!result.ok || !result.data) {

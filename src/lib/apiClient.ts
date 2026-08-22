@@ -301,7 +301,7 @@ const BASE_URL: string =
   (typeof window !== "undefined" &&
     (window as any).__NEXT_PUBLIC_API_BASE_URL) ||
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  "http://localhost:3001/api/v1";
+  "/api/v1";
 
 // ---------------------------------------------------------------------------
 // Core fetch wrapper
@@ -406,6 +406,9 @@ export const api = {
       request<FeedItem[]>("GET", "/dashboard/feed", undefined, filters as any),
 
     charts: () => request<ChartData>("GET", "/dashboard/charts"),
+
+    drugDetails: (category: string) =>
+      request<{ name: string; count: number }[]>("GET", "/dashboard/drug-details", undefined, { category }),
   },
 
   // ── Intelligence ──

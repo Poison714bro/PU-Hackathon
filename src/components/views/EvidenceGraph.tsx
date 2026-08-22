@@ -308,7 +308,7 @@ export default function EvidenceGraph() {
     return graphEdgesData.filter(
       (e) => e.source === selectedNode.id || e.target === selectedNode.id
     );
-  }, [selectedNode]);
+  }, [selectedNode, graphEdgesData]);
 
   return (
     <div className="relative flex h-full overflow-hidden bg-card font-mono text-foreground">

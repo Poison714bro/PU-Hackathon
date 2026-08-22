@@ -68,29 +68,38 @@ const INITIAL_VIEW_STATE = {
   transitionDuration: 0,
 };
 
-const osmMapStyle = {
+const darkMapStyle = {
   version: 8,
   sources: {
-    osm: {
+    carto: {
       type: "raster",
       tiles: [
-        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
       ],
       tileSize: 256,
-      attribution: "&copy; OpenStreetMap Contributors",
+      attribution: "&copy; OpenStreetMap Contributors &copy; CARTO",
       maxzoom: 19
     }
   },
   layers: [
     {
-      id: "osm",
+      id: "carto",
       type: "raster",
-      source: "osm"
+      source: "carto"
     }
   ]
 };
+
+function formatShortDate(isoString: string) {
+  if (!isoString) return "";
+  try {
+    return new Date(isoString).toISOString().split("T")[0];
+  } catch {
+    return isoString.split("T")[0];
+  }
+}
 
 export default function MapView() {
   const [globalMinDate, setGlobalMinDate] = useState(defaultMin);
@@ -108,6 +117,7 @@ export default function MapView() {
   const [isClient, setIsClient] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [mapPinsData, setMapPinsData] = useState<MapPin[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const playRef = useRef<NodeJS.Timeout | null>(null);
 
   // Store integration
@@ -128,7 +138,7 @@ export default function MapView() {
           lng: p.lng,
           drugCategory: p.drugCategory,
           label: p.label,
-          date: p.date,
+          date: p.date.split('T')[0],
           details: p.quantityEst || `${p.city}, ${p.country}`,
           riskScore: p.riskScore,
           linkedNodeIds: [],
@@ -136,7 +146,7 @@ export default function MapView() {
         })));
         
         // Dynamically set date range bounds based on data
-        const dates = res.data.map((p: any) => p.date).sort();
+        const dates = res.data.map((p: any) => p.date.split('T')[0]).sort();
         if (dates.length > 0) {
           setGlobalMinDate(dates[0]);
           setGlobalMaxDate(dates[dates.length - 1]);
@@ -234,6 +244,17 @@ export default function MapView() {
     }));
   }, []);
 
+  const handleSearch = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const match = mapPinsData.find(p => p.label.toLowerCase().includes(query) || p.drugCategory.toLowerCase().includes(query));
+      if (match) {
+        handleFlyTo(match);
+        handlePinClick(match.id);
+      }
+    }
+  }, [searchQuery, mapPinsData, handleFlyTo]);
+
   const handlePinClick = useCallback((pinId: string) => {
     setSelectedPin(pinId);
     const pin = mapPinsData.find((p) => p.id === pinId);
@@ -320,9 +341,9 @@ export default function MapView() {
       id: "cluster-scatter-layer",
       data: clusterNodes,
       getPosition: (d: any) => d.geometry.coordinates,
-      getFillColor: [40, 40, 40, 230], // Dark grey for clusters
-      getLineColor: [255, 255, 255, 100],
-      getLineWidth: 1,
+      getFillColor: [71, 85, 105, 230], // Bright Slate-600 for clusters so they are visible on dark background
+      getLineColor: [255, 255, 255, 150],
+      getLineWidth: 2,
       lineWidthUnits: 'pixels',
       getRadius: (d: any) => Math.min(20 + d.properties.point_count * 2, 40),
       radiusUnits: 'pixels',
@@ -369,15 +390,18 @@ export default function MapView() {
   ], [unclusteredPoints, clusterNodes, supercluster, selectedPin, storeSelectedId, storeSelectedType, selectedPinData, handlePinClick]);
 
   return (
-    <div className="relative flex h-full overflow-hidden bg-slate-50 text-slate-900">
+    <div className="relative flex h-full overflow-hidden bg-[#030711] text-slate-200">
       <div className="flex flex-1 flex-col relative">
         {/* Top-Left Search (Google Maps style) */}
-        <div className="absolute top-4 left-4 z-[5] flex items-center gap-2 rounded-lg bg-white px-4 py-3 shadow-lg ring-1 ring-slate-900/5 transition-all">
-          <Search className="h-5 w-5 text-muted-foreground" />
+        <div className="absolute top-4 left-4 z-[5] flex items-center gap-2 rounded-lg bg-[#0a0f18] px-4 py-3 shadow-lg ring-1 ring-slate-800 transition-all focus-within:ring-cyan-500">
+          <Search className="h-5 w-5 text-slate-400" />
           <input
             type="text"
             placeholder="Search locations, routes..."
-            className="w-64 bg-transparent text-sm text-slate-700 placeholder-slate-400 outline-none"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
+            className="w-64 bg-transparent text-sm text-slate-200 placeholder-slate-500 outline-none"
           />
         </div>
 
@@ -388,13 +412,13 @@ export default function MapView() {
           {isClient && (
             <DeckGL
               layers={layers}
-              initialViewState={viewState}
+              viewState={viewState}
               onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
               getCursor={({ isDragging }: { isDragging: boolean }) => (isDragging ? 'grabbing' : 'grab')}
             >
               <Map
-                mapStyle={osmMapStyle as any}
+                mapStyle={darkMapStyle}
                 reuseMaps
               >
                 {/* CSS Pulsing Marker for Selected Point */}
@@ -417,25 +441,25 @@ export default function MapView() {
               {/* High-performance DeckGL tooltip */}
               {hoverInfo && hoverInfo.object && (
                 <div
-                  className="pointer-events-none absolute z-40 rounded-lg bg-white p-3 text-sm shadow-xl ring-1 ring-slate-900/10"
+                  className="pointer-events-none absolute z-40 rounded-lg border border-slate-800 bg-[#0a0f18]/95 p-3 text-sm shadow-xl backdrop-blur-md"
                   style={{ left: hoverInfo.x + 15, top: hoverInfo.y + 15 }}
                 >
                   {hoverInfo.object.properties.cluster ? (
                     <div>
-                      <strong>Cluster</strong>
-                      <div className="text-muted-foreground">
+                      <strong className="text-white">Activity Cluster</strong>
+                      <div className="text-slate-400">
                         {hoverInfo.object.properties.point_count} evidence points
                       </div>
                     </div>
                   ) : (
                     <div>
-                      <strong className="text-slate-900">{hoverInfo.object.properties.label}</strong>
-                      <div className="text-slate-600 mt-1 flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full" style={{ background: getDrugColor(hoverInfo.object.properties.drugCategory) }} />
-                        {hoverInfo.object.properties.drugCategory}
+                      <strong className="text-white">{hoverInfo.object.properties.label}</strong>
+                      <div className="text-slate-300 mt-1 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full shadow-sm" style={{ background: getDrugColor(hoverInfo.object.properties.drugCategory) }} />
+                        <span className="text-xs">{hoverInfo.object.properties.drugCategory}</span>
                       </div>
-                      <div className="text-muted-foreground mt-1 text-xs">
-                        Risk Score: {hoverInfo.object.properties.riskScore}
+                      <div className="text-slate-500 mt-2 text-xs">
+                        Risk Score: <span className="font-semibold text-white">{hoverInfo.object.properties.riskScore}</span>
                       </div>
                     </div>
                   )}
@@ -445,32 +469,32 @@ export default function MapView() {
           )}
         </div>
 
-        {/* Timeline / Calendar Panel (Light Glassmorphism Bottom Center) */}
-        <div className="absolute bottom-6 left-1/2 z-[5] -translate-x-1/2 rounded-2xl bg-white/80 p-4 shadow-2xl ring-1 ring-slate-900/10 backdrop-blur-xl transition-all hover:bg-white/95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
-          <div className="w-[600px]">
-            <div className="mb-3 flex items-center justify-between">
+        {/* Timeline / Calendar Panel (Dark Glassmorphism Bottom Center) */}
+        <div className="absolute bottom-6 left-1/2 z-[5] -translate-x-1/2 rounded-xl border border-slate-800/80 bg-[#0a0f18]/90 p-5 shadow-2xl backdrop-blur-md transition-all hover:bg-[#0a0f18]/95 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          <div className="w-[640px]">
+            <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-blue-500" />
-                <span className="text-xs font-bold text-slate-700">Timeline Filter</span>
+                <Calendar className="h-4 w-4 text-cyan-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Timeline Filter</span>
                 {/* Play/Pause button */}
                 <button
                   onClick={isPlaying ? stopPlayback : startPlayback}
-                  className={`ml-2 flex h-7 w-7 items-center justify-center rounded-full border transition-all ${
+                  className={`ml-2 flex h-8 w-8 items-center justify-center rounded-full border transition-all ${
                     isPlaying
-                      ? "border-blue-500/50 bg-blue-50 text-blue-600 shadow-inner"
-                      : "border-slate-200 bg-white text-muted-foreground hover:border-blue-500/30 hover:text-blue-500 shadow-sm"
+                      ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-400 shadow-inner"
+                      : "border-slate-700 bg-[#070a10] text-slate-400 hover:border-cyan-500/50 hover:text-cyan-400 shadow-sm"
                   }`}
                 >
-                  {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
+                  {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
                 </button>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="rounded-lg bg-slate-100 px-3 py-1 font-mono text-[11px] font-medium text-slate-600">
-                  {dateRange[0]}
+              <div className="flex items-center gap-3 rounded-md bg-[#070a10] p-1.5 border border-slate-800">
+                <span className="px-2 font-mono text-[11px] font-medium text-slate-300">
+                  {formatShortDate(dateRange[0])}
                 </span>
-                <span className="text-[10px] font-medium text-muted-foreground">to</span>
-                <span className="rounded-lg bg-slate-100 px-3 py-1 font-mono text-[11px] font-medium text-slate-600">
-                  {dateRange[1]}
+                <span className="text-[10px] font-medium text-slate-500">to</span>
+                <span className="px-2 font-mono text-[11px] font-medium text-slate-300">
+                  {formatShortDate(dateRange[1])}
                 </span>
               </div>
             </div>
@@ -491,7 +515,7 @@ export default function MapView() {
                 max={allDateRange.length - 1}
                 value={sliderValue[0]}
                 onChange={(e) => handleSliderChange(e, "start")}
-                className="absolute left-0 right-0 top-1 h-6 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-md"
+                className="absolute left-0 right-0 top-1 h-6 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0a0f18] [&::-webkit-slider-thumb]:bg-cyan-500 [&::-webkit-slider-thumb]:shadow-md"
                 style={{ zIndex: 3 }}
                 disabled={isPlaying}
               />
@@ -501,7 +525,7 @@ export default function MapView() {
                 max={allDateRange.length - 1}
                 value={sliderValue[1]}
                 onChange={(e) => handleSliderChange(e, "end")}
-                className="absolute left-0 right-0 top-1 h-6 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-md"
+                className="absolute left-0 right-0 top-1 h-6 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0a0f18] [&::-webkit-slider-thumb]:bg-cyan-500 [&::-webkit-slider-thumb]:shadow-md"
                 style={{ zIndex: 4 }}
                 disabled={isPlaying}
               />
@@ -515,8 +539,8 @@ export default function MapView() {
             </div>
 
             {/* Drug Filters */}
-            <div className="mt-4 border-t border-slate-200/60 pt-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="mt-5 border-t border-slate-800/60 pt-4">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                 Filter by Drug Type
               </p>
               <div className="flex flex-wrap items-center gap-2">
@@ -524,15 +548,15 @@ export default function MapView() {
                   <button
                     key={cat.name}
                     onClick={() => toggleCategory(cat.name)}
-                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+                    className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all ${
                       activeCategories.has(cat.name)
-                        ? "bg-slate-100 text-slate-800 ring-1 ring-slate-900/5 shadow-sm"
-                        : "text-muted-foreground border border-slate-200 bg-transparent hover:bg-slate-50"
+                        ? "bg-[#070a10] text-slate-200 border border-slate-700 shadow-sm"
+                        : "text-slate-500 border border-slate-800 bg-transparent hover:bg-slate-800/50 hover:text-slate-400"
                     }`}
                   >
                     <div
-                      className="h-2 w-2 rounded-full"
-                      style={{ background: activeCategories.has(cat.name) ? cat.color : "#cbd5e1" }}
+                      className="h-2 w-2 rounded-full shadow-sm"
+                      style={{ background: activeCategories.has(cat.name) ? cat.color : "#334155" }}
                     />
                     <span>{cat.name}</span>
                   </button>

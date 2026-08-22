@@ -30,7 +30,9 @@ export default function GlobalError({
         </div>
 
         <div className="w-full rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-left">
-          <p className="text-xs font-mono text-red-400 break-all">{error.message || "Unknown error"}</p>
+          <p className="text-xs font-mono text-red-400 break-all">
+            {error.digest ? `Secure Error ID: ${error.digest}` : "A secure execution error occurred (Masked)"}
+          </p>
         </div>
 
         <button

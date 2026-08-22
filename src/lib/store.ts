@@ -39,8 +39,18 @@ export interface AppState {
   // Search
   searchQuery: string;
 
+  // Cache
+  mapPinsCache: any[] | null;
+  topologyCache: any | null;
+  investigationsCache: any[] | null;
+
   // Filters
   filters: FilterState;
+
+  // Cache Setters
+  setMapPinsCache: (data: any[]) => void;
+  setTopologyCache: (data: any) => void;
+  setInvestigationsCache: (data: any[]) => void;
 
   // Actions
   login: (user: User, token: string) => void;
@@ -101,6 +111,11 @@ export const useAppStore = create<AppState>((set, get) => {
     highlightedIds: [],
     activeView: "dashboard",
     searchQuery: "",
+    
+    mapPinsCache: null,
+    topologyCache: null,
+    investigationsCache: null,
+    
     filters: { ...defaultFilters },
 
     login: (user, token) => set({ isAuthenticated: true, currentUser: user, token }),
@@ -187,6 +202,10 @@ export const useAppStore = create<AppState>((set, get) => {
         else next.add(method);
         return { filters: { ...state.filters, contactMethods: next } };
       }),
+
+    setMapPinsCache: (data) => set({ mapPinsCache: data }),
+    setTopologyCache: (data) => set({ topologyCache: data }),
+    setInvestigationsCache: (data) => set({ investigationsCache: data }),
 
     resetFilters: () => set({ filters: { ...defaultFilters } }),
   };
