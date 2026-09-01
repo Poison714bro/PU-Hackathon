@@ -462,7 +462,7 @@ export const api = {
     topology: (entityId?: string) =>
       request<GraphTopology>(
         "GET",
-        entityId ? `/network/${encodeURIComponent(entityId)}` : "/network/default"
+        entityId ? `/graph/topology?nodeType=${encodeURIComponent(entityId)}` : "/graph/topology"
       ),
   },
 
@@ -508,7 +508,7 @@ export const api = {
 
   // ── Search ──
   search: (q: string) =>
-    request<SearchResultApi[]>("GET", "/search/", undefined, { keyword: q }),
+    request<SearchResultApi[]>("GET", "/search/", undefined, { q }),
 
   // ── Reconstruct (Timeline) ──
   reconstruct: (query: string) =>
