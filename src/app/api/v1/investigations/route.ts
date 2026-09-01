@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -32,6 +30,27 @@ export async function GET() {
     ];
 
     return NextResponse.json({ success: true, data });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, stage, status } = body;
+
+    if (id && (stage || status)) {
+      await prisma.intelEntity.update({
+        where: { id },
+        data: {
+          status: stage || status,
+          lastActive: new Date()
+        }
+      });
+    }
+
+    return NextResponse.json({ success: true, message: "Investigation updated successfully" });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
   }

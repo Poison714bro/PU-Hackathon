@@ -606,9 +606,19 @@ export default function EntityResolution() {
             
             <div className="flex gap-4 h-36 mt-auto">
               {/* Interactive Image A */}
-              <InteractiveImage src={currentCandidate.aliasA.image} title="Listing A" label="Alias A" />
+              <InteractiveImage 
+                src={currentCandidate.aliasA.image} 
+                title="Listing A" 
+                label="Alias A" 
+                onClick={() => setLightboxImage({ src: currentCandidate.aliasA.image, title: `${currentCandidate.aliasA.name} - Listing A` })}
+              />
               {/* Interactive Image B */}
-              <InteractiveImage src={currentCandidate.aliasB.image} title="Listing B" label="Alias B" />
+              <InteractiveImage 
+                src={currentCandidate.aliasB.image} 
+                title="Listing B" 
+                label="Alias B" 
+                onClick={() => setLightboxImage({ src: currentCandidate.aliasB.image, title: `${currentCandidate.aliasB.name} - Listing B` })}
+              />
             </div>
           </div>
 
@@ -620,14 +630,14 @@ export default function EntityResolution() {
 
 // --- SUB-COMPONENTS ---
 
-function InteractiveImage({ src, title, label }: { src: string, title: string, label: string }) {
-  const [loupe, setLoupe] = useState<{x: number, y: number} | null>(null);
+function InteractiveImage({ src, title, label, onClick }: { src: string, title: string, label: string, onClick?: () => void }) {
+  const [loupe, setLoupe] = useState<{x: number, y: number, width: number, height: number} | null>(null);
   
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    setLoupe({ x, y });
+    setLoupe({ x, y, width: rect.width || 1, height: rect.height || 1 });
   };
 
   return (
@@ -635,6 +645,7 @@ function InteractiveImage({ src, title, label }: { src: string, title: string, l
       className="relative flex-1 overflow-hidden rounded-lg border border-slate-700 bg-black cursor-crosshair group"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setLoupe(null)}
+      onClick={onClick}
     >
       <img src={src} alt={title} className="absolute inset-0 h-full w-full object-cover opacity-70 group-hover:opacity-50 transition-opacity" />
       
@@ -655,7 +666,7 @@ function InteractiveImage({ src, title, label }: { src: string, title: string, l
             left: loupe.x - 32, 
             top: loupe.y - 32,
             backgroundImage: `url(${src})`,
-            backgroundPosition: `${(loupe.x / 140) * 100}% ${(loupe.y / 140) * 100}%`,
+            backgroundPosition: `${(loupe.x / loupe.width) * 100}% ${(loupe.y / loupe.height) * 100}%`,
             backgroundSize: '300%'
           }}
         />

@@ -50,10 +50,64 @@ const roleConfig: Record<string, { label: string; color: string }> = {
 };
 
 const edgeCriteria = [
-  { key: "financial", label: "FINANCIAL", icon: Zap, color: "#eab308" },
-  { key: "communication", label: "COMMUNICATION", icon: MessageSquare, color: "#f8fafc" },
-  { key: "infrastructure", label: "INFRASTRUCTURE", icon: Shield, color: "#3b82f6" },
+  { key: "financial", label: "FINANCIAL", shortLabel: "FINANCIAL", icon: Zap, color: "#eab308" },
+  { key: "communication", label: "COMMUNICATION", shortLabel: "COMMS", icon: MessageSquare, color: "#38bdf8" },
+  { key: "infrastructure", label: "INFRASTRUCTURE", shortLabel: "INFRA", icon: Shield, color: "#818cf8" },
 ];
+
+const EDGE_COLORS: Record<string, string> = {
+  financial: "#eab308",
+  communication: "#38bdf8",
+  infrastructure: "#818cf8",
+};
+
+export function classifyEdgeCategory(edge: any): "financial" | "communication" | "infrastructure" {
+  if (edge.category) {
+    const cat = String(edge.category).toLowerCase();
+    if (cat === "financial" || cat === "communication" || cat === "infrastructure") return cat as any;
+  }
+  const label = String(edge.label || "").toLowerCase();
+  const contact = String(edge.contactMethod || "").toLowerCase();
+
+  // Financial vectors (crypto, payments, wallets, swaps, sales, tx)
+  if (
+    label.includes("payment") ||
+    label.includes("wallet") ||
+    label.includes("swap") ||
+    label.includes("eth") ||
+    label.includes("btc") ||
+    label.includes("monero") ||
+    label.includes("xmr") ||
+    label.includes("sends") ||
+    label.includes("receives") ||
+    label.includes("owns") ||
+    label.includes("financial") ||
+    label.includes("transact")
+  ) {
+    return "financial";
+  }
+
+  // Communication vectors (PGP, email, comms, chat, messages, telegram, referral)
+  if (
+    label.includes("key") ||
+    label.includes("pgp") ||
+    label.includes("email") ||
+    label.includes("communicat") ||
+    label.includes("chat") ||
+    label.includes("message") ||
+    label.includes("contact") ||
+    label.includes("referral") ||
+    label.includes("uses") ||
+    label.includes("signs") ||
+    contact === "encrypted" ||
+    contact === "phone"
+  ) {
+    return "communication";
+  }
+
+  // Infrastructure vectors (listings, servers, hosting, shared infra, direct assoc, market)
+  return "infrastructure";
+}
 
 const mockSparklineData = Array.from({ length: 30 }, (_, i) => ({ time: i, val: Math.random() * 100 }));
 
@@ -90,9 +144,28 @@ export default function EvidenceGraph() {
   const selectEntity = useAppStore((s) => s.selectEntity);
   const clearSelection = useAppStore((s) => s.clearSelection);
 
+  const handleExecute = useCallback(() => {
+    setIsExecuting(true);
+    api.graph.topology()
+      .then((res) => {
+        if (res.ok && res.data) {
+          setGraphNodesData(res.data.nodes);
+          setGraphEdgesData(res.data.edges);
+          setIsExecuted(true);
+        }
+      })
+      .catch((err) => {
+        console.error("EvidenceGraph Topology Fetch Error:", err);
+      })
+      .finally(() => {
+        setIsExecuting(false);
+      });
+  }, []);
+
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    handleExecute();
+  }, [handleExecute]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -108,29 +181,15 @@ export default function EvidenceGraph() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExecuting]);
-
-  const handleExecute = useCallback(() => {
-    setIsExecuting(true);
-    setTimeout(() => {
-      api.graph.topology().then((res) => {
-        if (res.ok && res.data) {
-          setGraphNodesData(res.data.nodes);
-          setGraphEdgesData(res.data.edges);
-          setIsExecuted(true);
-          setIsExecuting(false);
-        }
-      });
-    }, 600);
-  }, []);
+  }, [isExecuting, handleExecute]);
 
   // Physics Tuning
   useEffect(() => {
     if (isExecuted && fgRef.current) {
-      fgRef.current.d3Force('charge').strength(-400).distanceMax(250);
-      fgRef.current.d3Force('link').distance(45).strength(1);
+      fgRef.current.d3Force('charge').strength(-450).distanceMax(400);
+      fgRef.current.d3Force('link').distance(70).strength(0.8);
     }
-  }, [isExecuted, graphNodesData]);
+  }, [isExecuted, graphNodesData, graphEdgesData]);
 
   // Sync tooltip screen pos on animation frame if hovering
   useEffect(() => {
@@ -171,6 +230,50 @@ export default function EvidenceGraph() {
     setRadialMenu({ x: event.clientX, y: event.clientY, node });
   }, []);
 
+  const toggleCriteria = (key: string) => {
+    setActiveCriteria((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // Filter edges based on vector criteria
+  const activeEdges = useMemo(() => {
+    return graphEdgesData.filter((e) => {
+      const category = classifyEdgeCategory(e);
+      return activeCriteria.has(category);
+    });
+  }, [graphEdgesData, activeCriteria]);
+
+  const connectedEdges = useMemo(() => {
+    if (!selectedNode) return [];
+    return graphEdgesData.filter(
+      (e) => (e.source?.id || e.source) === selectedNode.id || (e.target?.id || e.target) === selectedNode.id
+    );
+  }, [selectedNode, graphEdgesData]);
+
+  // Persistently highlighted cluster (selected node + all 1st-degree neighbors)
+  const selectedCluster = useMemo(() => {
+    if (!selectedNode) {
+      return { nodeIds: new Set<string>(), linkSet: new Set<any>() };
+    }
+    const nodeIds = new Set<string>([selectedNode.id]);
+    const linkSet = new Set<any>();
+
+    activeEdges.forEach((link) => {
+      const sourceId = link.source?.id || link.source;
+      const targetId = link.target?.id || link.target;
+      if (sourceId === selectedNode.id || targetId === selectedNode.id) {
+        linkSet.add(link);
+        nodeIds.add(sourceId === selectedNode.id ? targetId : sourceId);
+      }
+    });
+
+    return { nodeIds, linkSet };
+  }, [selectedNode, activeEdges]);
+
   const handleNodeHover = useCallback((node: any) => {
     setHighlightNodes(new Set());
     setHighlightLinks(new Set());
@@ -179,9 +282,9 @@ export default function EvidenceGraph() {
       const newHighlightNodes = new Set([node.id]);
       const newHighlightLinks = new Set();
       
-      graphEdgesData.forEach(link => {
-        const sourceId = link.source.id || link.source;
-        const targetId = link.target.id || link.target;
+      activeEdges.forEach(link => {
+        const sourceId = link.source?.id || link.source;
+        const targetId = link.target?.id || link.target;
         if (sourceId === node.id || targetId === node.id) {
           newHighlightLinks.add(link);
           newHighlightNodes.add(sourceId === node.id ? targetId : sourceId);
@@ -195,13 +298,19 @@ export default function EvidenceGraph() {
     
     const container = document.getElementById('force-graph-container');
     if (container) container.style.cursor = node ? 'pointer' : 'default';
-  }, [graphEdgesData]);
+  }, [activeEdges]);
 
   const drawNode = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const config = nodeTypeConfig[node.nodeType] || nodeTypeConfig.username;
-    const isHighlighted = highlightNodes.has(node.id) || hoverNode?.id === node.id;
-    // SMART DIMMING: if hovering ANYTHING, and this node is NOT highlighted, dim heavily
-    const isDimmed = hoverNode && !isHighlighted;
+    
+    const isDirectlySelected = selectedNode?.id === node.id;
+    const isHovered = hoverNode?.id === node.id;
+    const isInSelectedCluster = selectedCluster.nodeIds.has(node.id);
+    const isInHoverCluster = highlightNodes.has(node.id);
+
+    const isHighlighted = isHovered || isInHoverCluster || isDirectlySelected || isInSelectedCluster;
+    // Dim other nodes if something is selected or hovered, but this node is NOT in the active set
+    const isDimmed = (selectedNode || hoverNode) && !isHighlighted;
     
     const isHub = node.nodeType === 'username';
     const r = isHub ? 12 : 5; 
@@ -210,51 +319,41 @@ export default function EvidenceGraph() {
     ctx.arc(node.x, node.y, r, 0, 2 * Math.PI, false);
     
     if (isDimmed) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
       ctx.shadowBlur = 0;
       ctx.fill();
     } else {
       ctx.fillStyle = config.color;
       ctx.shadowColor = config.color;
-      ctx.shadowBlur = isHighlighted ? 30 : (isHub ? 20 : 8);
+      ctx.shadowBlur = isDirectlySelected ? 35 : isHighlighted ? 22 : (isHub ? 15 : 6);
       ctx.fill();
+      
+      // Draw outer glowing target ring around directly clicked node
+      if (isDirectlySelected) {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI, false);
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 2 / globalScale;
+        ctx.stroke();
+      }
+
       ctx.shadowBlur = 0;
       
-      if (isHighlighted || (isHub && globalScale > 1.2)) {
+      // Show labels for all highlighted cluster nodes, hovered nodes, and hubs
+      if (isHighlighted || (isHub && globalScale > 1.0)) {
          ctx.font = `bold ${(isHub ? 12 : 10)/globalScale}px monospace`;
          ctx.textAlign = 'center';
          ctx.textBaseline = 'top';
-         ctx.fillStyle = '#f8fafc';
+         ctx.fillStyle = isDirectlySelected ? '#00d4ff' : '#f8fafc';
          ctx.fillText(node.label, node.x, node.y + r + 6);
       }
     }
-  }, [highlightNodes, hoverNode]);
+  }, [highlightNodes, hoverNode, selectedNode, selectedCluster]);
 
   const handleCloseInspector = useCallback(() => {
     setSelectedNode(null);
     clearSelection();
   }, [clearSelection]);
-
-  const toggleCriteria = (key: string) => {
-    setActiveCriteria((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const connectedEdges = useMemo(() => {
-    if (!selectedNode) return [];
-    return graphEdgesData.filter(
-      (e) => (e.source?.id || e.source) === selectedNode.id || (e.target?.id || e.target) === selectedNode.id
-    );
-  }, [selectedNode, graphEdgesData]);
-
-  // Filter edges based on vector criteria
-  const activeEdges = useMemo(() => {
-    return graphEdgesData.filter(e => activeCriteria.has(e.label?.toLowerCase() || 'financial'));
-  }, [graphEdgesData, activeCriteria]);
 
   return (
     <div className="flex h-full w-full bg-[#030712] relative overflow-hidden text-foreground">
@@ -317,32 +416,34 @@ export default function EvidenceGraph() {
       {/* Main Graph Area */}
       <div className="relative flex flex-1 flex-col overflow-hidden" onClick={() => setRadialMenu(null)}>
         {/* ═══ 1. Dynamic Web Generator (Top Action Bar) ═══ */}
-        <div className="z-30 border-b border-slate-800/80 bg-[#0a0f18]/80 backdrop-blur-lg flex-shrink-0 shadow-lg">
-          <div className="flex items-center gap-4 px-5 py-3">
+        <div className={`z-30 border-b border-slate-800/80 bg-[#0a0f18]/80 backdrop-blur-lg flex-shrink-0 shadow-lg transition-all duration-300 ${selectedNode ? 'mr-[420px]' : ''}`}>
+          <div className="flex items-center gap-2.5 px-4 py-2.5 min-w-0">
             {/* Target Search */}
-            <div className="relative flex-1 min-w-[300px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+            <div className="relative flex-1 min-w-[120px] max-w-[200px] flex-shrink">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-primary" />
               <input
                 type="text"
                 placeholder="TARGET POI SEED..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-slate-700/50 bg-[#0f111a]/50 py-2 pl-10 pr-3 text-xs uppercase tracking-widest text-slate-200 placeholder-slate-600 outline-none transition-all hover:border-slate-600 focus:border-primary focus:bg-[#0f111a] rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
+                className="w-full border border-slate-700/50 bg-[#0f111a]/50 py-1.5 pl-8 pr-2 text-[11px] uppercase tracking-widest text-slate-200 placeholder-slate-600 outline-none transition-all hover:border-slate-600 focus:border-primary focus:bg-[#0f111a] rounded-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
               />
             </div>
 
-            <div className="h-6 w-px bg-slate-800" />
+            <div className="h-5 w-px bg-slate-800 flex-shrink-0" />
 
-            {/* Connection Criteria */}
-            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-2">VECTORS</span>
+            {/* Connection Criteria / Vectors */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1 flex-shrink-0">VECTORS</span>
               {edgeCriteria.map((c) => {
                 const isActive = activeCriteria.has(c.key);
+                const Icon = c.icon;
                 return (
                   <button
                     key={c.key}
                     onClick={() => toggleCriteria(c.key)}
-                    className="flex items-center gap-1.5 border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap rounded-md"
+                    title={c.label}
+                    className="flex items-center gap-1 border px-2 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap rounded-md flex-shrink-0"
                     style={{
                       borderColor: isActive ? c.color : "#1e293b",
                       background: isActive ? `${c.color}15` : "transparent",
@@ -350,19 +451,20 @@ export default function EvidenceGraph() {
                       boxShadow: isActive ? `0 0 10px ${c.color}30` : "none"
                     }}
                   >
-                    {c.label}
+                    <Icon className="h-3 w-3 flex-shrink-0" />
+                    <span>{c.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="h-6 w-px bg-slate-800" />
+            <div className="h-5 w-px bg-slate-800 flex-shrink-0" />
 
             {/* Web Depth */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowHopsDropdown(!showHopsDropdown)}
-                className="flex items-center gap-2 border border-slate-700/50 bg-[#0f111a]/50 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-primary hover:bg-[#0f111a] rounded-md transition-colors"
+                className="flex items-center gap-1.5 border border-slate-700/50 bg-[#0f111a]/50 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:border-primary hover:bg-[#0f111a] rounded-md transition-colors whitespace-nowrap"
               >
                 HOPS: {hops}
                 <ChevronDown className="h-3 w-3 text-slate-500" />
@@ -373,7 +475,7 @@ export default function EvidenceGraph() {
                     <button
                       key={n}
                       onClick={() => { setHops(n); setShowHopsDropdown(false); }}
-                      className={`block w-full px-6 py-2.5 text-left text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-slate-800 ${
+                      className={`block w-full px-5 py-2 text-left text-[9px] font-black uppercase tracking-widest transition-colors hover:bg-slate-800 ${
                         hops === n ? "text-primary bg-primary/10" : "text-slate-400"
                       }`}
                     >
@@ -388,9 +490,9 @@ export default function EvidenceGraph() {
             <button 
               onClick={handleExecute}
               disabled={isExecuting}
-              className={`group relative flex items-center gap-2 px-6 py-2 text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${isExecuting ? 'bg-primary/50 text-black cursor-wait' : 'bg-primary text-black hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105'}`}
+              className={`group relative flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap rounded-md overflow-hidden flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background ${isExecuting ? 'bg-primary/50 text-black cursor-wait' : 'bg-primary text-black hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:scale-105'}`}
             >
-              <Target className={`h-4 w-4 ${isExecuting ? 'animate-spin' : ''}`} />
+              <Target className={`h-3.5 w-3.5 ${isExecuting ? 'animate-spin' : ''}`} />
               {isExecuting ? 'EXECUTING...' : 'EXECUTE'}
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-1 text-[9px] font-bold opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none text-white z-50">Cmd/Ctrl + E</span>
             </button>
@@ -414,7 +516,7 @@ export default function EvidenceGraph() {
             <div className="absolute inset-0" onContextMenu={(e) => e.preventDefault()}>
                 <ForceGraph2D
                   ref={fgRef}
-                  graphData={{ nodes: graphNodesData, links: graphEdgesData }}
+                  graphData={{ nodes: graphNodesData, links: activeEdges }}
                   nodeCanvasObject={drawNode}
                   nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
                     const isHub = node.nodeType === 'username';
@@ -433,29 +535,50 @@ export default function EvidenceGraph() {
                   onNodeDragEnd={(node) => {
                     node.fx = node.x; node.fy = node.y;
                   }}
-                  // DIRECTIONAL PARTICLE FLOW
-                  linkDirectionalParticles={2}
-                  linkDirectionalParticleWidth={2.5}
-                  linkDirectionalParticleSpeed={() => 0.005}
-                  linkDirectionalParticleColor={() => "rgba(255,255,255,0.8)"}
-                  
-                  linkWidth={link => highlightLinks.has(link) ? 2 : 1.2}
+                  // DIRECTIONAL PARTICLE FLOW & NEURAL PATHWAYS
+                  linkDirectionalParticles={(link: any) => {
+                    const isLinkActive = highlightLinks.has(link) || selectedCluster.linkSet.has(link);
+                    return isLinkActive ? 4 : 2;
+                  }}
+                  linkDirectionalParticleWidth={(link: any) => {
+                    const isLinkActive = highlightLinks.has(link) || selectedCluster.linkSet.has(link);
+                    return isLinkActive ? 3.5 : 2;
+                  }}
+                  linkDirectionalParticleSpeed={(link: any) => {
+                    const isLinkActive = highlightLinks.has(link) || selectedCluster.linkSet.has(link);
+                    return isLinkActive ? 0.008 : 0.004;
+                  }}
+                  linkDirectionalParticleColor={(link: any) => {
+                    const cat = classifyEdgeCategory(link);
+                    return EDGE_COLORS[cat] || "#38bdf8";
+                  }}
+                  linkWidth={(link: any) => {
+                    const isLinkActive = highlightLinks.has(link) || selectedCluster.linkSet.has(link);
+                    return isLinkActive ? 2.5 : 1.2;
+                  }}
                   linkColor={(link: any) => {
-                    const isDimmedLink = hoverNode && !highlightLinks.has(link);
+                    const isLinkActive = highlightLinks.has(link) || selectedCluster.linkSet.has(link);
+                    const isDimmedLink = (selectedNode || hoverNode) && !isLinkActive;
                     if (isDimmedLink) return 'rgba(255,255,255,0.02)';
-                    return 'rgba(255,255,255,0.25)';
+                    const cat = classifyEdgeCategory(link);
+                    const baseColor = EDGE_COLORS[cat] || "#38bdf8";
+                    return isLinkActive ? baseColor : `${baseColor}60`;
+                  }}
+                  linkCurvature={0.1}
+                  onBackgroundClick={() => {
+                    handleCloseInspector();
                   }}
                   backgroundColor="#030712"
-                  d3AlphaDecay={0.15}
-                  d3VelocityDecay={0.85}
-                  cooldownTicks={100}
+                  d3AlphaDecay={0.08}
+                  d3VelocityDecay={0.7}
+                  cooldownTicks={120}
                 />
             </div>
           )}
 
           {/* Minimap Overlay (Translucent SVG bounds) */}
           {isExecuted && (
-            <div className="absolute bottom-20 right-6 z-20 w-32 h-32 bg-[#0f111a]/60 border border-slate-700 rounded-lg shadow-2xl backdrop-blur-md overflow-hidden pointer-events-none">
+            <div className={`absolute bottom-20 z-20 w-32 h-32 bg-[#0f111a]/60 border border-slate-700 rounded-lg shadow-2xl backdrop-blur-md overflow-hidden pointer-events-none transition-all duration-300 ${selectedNode ? 'right-[440px]' : 'right-6'}`}>
               <svg width="100%" height="100%" viewBox="-300 -300 600 600" preserveAspectRatio="xMidYMid meet">
                  {/* Links */}
                  {activeEdges.map((e, i) => {
@@ -476,10 +599,28 @@ export default function EvidenceGraph() {
 
           {/* Custom Zoom Controls */}
           {isExecuted && (
-             <div className="absolute top-6 right-6 z-10 flex flex-col border border-slate-700 bg-[#0f111a]/80 shadow-2xl rounded-md overflow-hidden backdrop-blur-md">
-               <button onClick={() => fgRef.current?.zoom(fgRef.current.zoom() * 1.5, 400)} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 border-b border-slate-700 transition-colors focus:outline-none"><Plus className="h-4 w-4" /></button>
-               <button onClick={() => fgRef.current?.zoom(fgRef.current.zoom() / 1.5, 400)} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 border-b border-slate-700 transition-colors focus:outline-none"><div className="h-4 w-4 flex items-center justify-center"><div className="w-3 h-0.5 bg-current" /></div></button>
-               <button onClick={() => fgRef.current?.zoomToFit(400)} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none"><Crosshair className="h-4 w-4" /></button>
+             <div className={`absolute top-6 z-10 flex flex-col border border-slate-700 bg-[#0f111a]/80 shadow-2xl rounded-md overflow-hidden backdrop-blur-md transition-all duration-300 ${selectedNode ? 'right-[440px]' : 'right-6'}`}>
+               <button 
+                 onClick={() => fgRef.current?.zoom(fgRef.current.zoom() * 1.5, 400)} 
+                 aria-label="Zoom in graph"
+                 className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 border-b border-slate-700 transition-colors focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+               >
+                 <Plus className="h-4 w-4" />
+               </button>
+               <button 
+                 onClick={() => fgRef.current?.zoom(fgRef.current.zoom() / 1.5, 400)} 
+                 aria-label="Zoom out graph"
+                 className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 border-b border-slate-700 transition-colors focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+               >
+                 <div className="h-4 w-4 flex items-center justify-center"><div className="w-3 h-0.5 bg-current" /></div>
+               </button>
+               <button 
+                 onClick={() => fgRef.current?.zoomToFit(400)} 
+                 aria-label="Fit graph to view"
+                 className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+               >
+                 <Crosshair className="h-4 w-4" />
+               </button>
              </div>
           )}
 
@@ -501,7 +642,7 @@ export default function EvidenceGraph() {
           </div>
           
           {/* Hacker Telemetry Footer */}
-          <div className="absolute bottom-0 inset-x-0 h-10 border-t border-slate-800 bg-black/80 backdrop-blur-md z-30 flex items-center justify-between px-6 font-mono text-[9px] uppercase tracking-widest text-slate-400 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] pointer-events-none">
+          <div className={`absolute bottom-0 inset-x-0 h-10 border-t border-slate-800 bg-black/80 backdrop-blur-md z-30 flex items-center justify-between px-6 font-mono text-[9px] uppercase tracking-widest text-slate-400 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] pointer-events-none transition-all duration-300 ${selectedNode ? 'pr-[430px]' : ''}`}>
              <div className="flex items-center gap-6">
                 <span className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"/> SYSTEM LIVE</span>
                 <span>DATA INGEST: 67 EPS</span>
@@ -527,7 +668,7 @@ export default function EvidenceGraph() {
 
         return (
           <div
-            className="z-drawer flex w-[420px] flex-shrink-0 flex-col border-l border-slate-700 bg-[#0a0f18]/95 backdrop-blur-2xl overflow-hidden shadow-2xl"
+            className="absolute right-0 top-0 bottom-0 z-40 flex w-[420px] max-w-full flex-col border-l border-slate-700 bg-[#0a0f18]/95 backdrop-blur-2xl overflow-hidden shadow-2xl"
             style={{ animation: "slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
             {/* Dossier Header */}

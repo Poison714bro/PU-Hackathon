@@ -99,7 +99,7 @@ export default function Sidebar({ activeView, onViewChange, threatLevel = "ELEVA
       </div>
 
       {/* Navigation */}
-      <nav className="space-y-1 p-3">
+      <nav className="space-y-1 p-3" role="navigation" aria-label="Main Navigation">
         <div className={`mb-3 ${collapsed ? "px-0" : "px-2"}`}>
           {!collapsed && (
             <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
@@ -117,9 +117,11 @@ export default function Sidebar({ activeView, onViewChange, threatLevel = "ELEVA
                 onViewChange(item.id);
                 setSidebarOpen(false); // Close mobile sidebar on navigation
               }}
-              className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+              aria-label={item.label}
+              aria-current={isActive ? "page" : undefined}
+              className={`group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                 isActive
-                  ? "bg-cyan-500/10 text-primary shadow-inner shadow-cyan-500/5"
+                  ? "bg-cyan-500/10 text-primary shadow-inner shadow-cyan-500/5 before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-primary before:shadow-[0_0_8px_rgba(0,212,255,0.8)]"
                   : "text-muted-foreground hover:bg-slate-800/50 hover:text-foreground"
               } ${collapsed ? "md:justify-center" : ""}`}
               title={collapsed ? item.label : undefined}

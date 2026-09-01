@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import {
   Calendar,
   Filter,
@@ -11,6 +10,9 @@ import {
   Pause,
   Zap,
   ChevronRight,
+  Sun,
+  Moon,
+  Globe,
 } from "lucide-react";
 import Map, { Marker, NavigationControl, FullscreenControl, Popup } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
@@ -62,29 +64,93 @@ const INITIAL_VIEW_STATE = {
   transitionDuration: 0,
 };
 
-const darkMapStyle = {
-  version: 8 as const,
-  sources: {
-    carto: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
-      ],
-      tileSize: 256,
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-      maxzoom: 20
-    }
+const MAP_THEMES: Record<string, any> = {
+  light: {
+    version: 8,
+    sources: {
+      "osm-tiles": {
+        type: "raster",
+        tiles: [
+          "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        ],
+        tileSize: 256,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxzoom: 19
+      }
+    },
+    layers: [
+      {
+        id: "osm-layer",
+        type: "raster",
+        source: "osm-tiles",
+        minzoom: 0,
+        maxzoom: 22
+      }
+    ]
   },
-  layers: [
-    {
-      id: "carto-dark",
-      type: "raster",
-      source: "carto"
-    }
-  ]
+  dark: {
+    version: 8,
+    sources: {
+      "esri-dark": {
+        type: "raster",
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        attribution: '&copy; Esri',
+        maxzoom: 16
+      },
+      "esri-dark-ref": {
+        type: "raster",
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        maxzoom: 16
+      }
+    },
+    layers: [
+      {
+        id: "esri-dark-base",
+        type: "raster",
+        source: "esri-dark",
+        minzoom: 0,
+        maxzoom: 22
+      },
+      {
+        id: "esri-dark-labels",
+        type: "raster",
+        source: "esri-dark-ref",
+        minzoom: 0,
+        maxzoom: 22
+      }
+    ]
+  },
+  voyager: {
+    version: 8,
+    sources: {
+      "esri-topo": {
+        type: "raster",
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        attribution: '&copy; Esri',
+        maxzoom: 18
+      }
+    },
+    layers: [
+      {
+        id: "esri-topo-layer",
+        type: "raster",
+        source: "esri-topo",
+        minzoom: 0,
+        maxzoom: 22
+      }
+    ]
+  }
 };
 
 function formatShortDate(isoString: string) {
@@ -102,13 +168,13 @@ export default function MapView() {
   const [debouncedViewState] = useDebounce(viewState, 200);
   
   const [viewMode, setViewMode] = useState<"cluster" | "heatmap">("cluster");
+  const [mapTheme, setMapTheme] = useState<"light" | "dark" | "voyager">("light");
   
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
   const [hoverInfo, setHoverInfo] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const playRef = useRef<NodeJS.Timeout | null>(null);
-  const router = useRouter();
   
   const [selectedCluster, setSelectedCluster] = useState<{lng: number, lat: number, leaves: any[]} | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -118,6 +184,7 @@ export default function MapView() {
   const storeSelectedType = useAppStore((s) => s.selectedEntityType);
   const selectEntity = useAppStore((s) => s.selectEntity);
   const clearSelection = useAppStore((s) => s.clearSelection);
+  const openDossier = useAppStore((s) => s.openDossier);
   const filters = useAppStore((s) => s.filters);
 
   const {
@@ -384,29 +451,73 @@ export default function MapView() {
           />
         </div>
 
-        {/* Top-Right Toggle (Point vs Heatmap) */}
-        <div className="absolute top-4 right-4 z-[5] flex items-center gap-1 rounded-lg bg-[#0a0f18] p-1 shadow-lg ring-1 ring-slate-800 transition-all">
-          <button
-            onClick={() => setViewMode("cluster")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-              viewMode === "cluster" ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            Clusters
-          </button>
-          <button
-            onClick={() => setViewMode("heatmap")}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-              viewMode === "heatmap" ? "bg-orange-600 text-white shadow-sm" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-            }`}
-          >
-            <Zap className="h-4 w-4" />
-            Heatmap
-          </button>
+        {/* Top-Right Toggle (Point vs Heatmap & Theme Switcher) */}
+        <div className="absolute top-4 right-4 z-[5] flex items-center gap-2">
+          {/* Map Base Theme Switcher */}
+          <div className="flex items-center gap-1 rounded-lg bg-[#0a0f18]/90 p-1 shadow-lg ring-1 ring-slate-800 backdrop-blur-md">
+            <button
+              onClick={() => setMapTheme("light")}
+              aria-label="Switch to Light Map Mode"
+              title="Light Mode (Positron)"
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                mapTheme === "light"
+                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+            >
+              <Sun className="h-3.5 w-3.5" />
+              Light
+            </button>
+            <button
+              onClick={() => setMapTheme("dark")}
+              aria-label="Switch to Dark Map Mode"
+              title="Dark Mode (Dark Matter)"
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                mapTheme === "dark"
+                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+            >
+              <Moon className="h-3.5 w-3.5" />
+              Dark
+            </button>
+            <button
+              onClick={() => setMapTheme("voyager")}
+              aria-label="Switch to Voyager Satellite/Street Map Mode"
+              title="Voyager Mode (Detailed Features)"
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                mapTheme === "voyager"
+                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Voyager
+            </button>
+          </div>
+
+          {/* Visualization Mode (Clusters vs Heatmap) */}
+          <div className="flex items-center gap-1 rounded-lg bg-[#0a0f18]/90 p-1 shadow-lg ring-1 ring-slate-800 backdrop-blur-md">
+            <button
+              onClick={() => setViewMode("cluster")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                viewMode === "cluster" ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+            >
+              <Layers className="h-4 w-4" />
+              Clusters
+            </button>
+            <button
+              onClick={() => setViewMode("heatmap")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                viewMode === "heatmap" ? "bg-orange-600 text-white shadow-sm" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+            >
+              <Zap className="h-4 w-4" />
+              Heatmap
+            </button>
+          </div>
         </div>
-
-
 
         {/* Map Container */}
         <div className="relative flex-1">
@@ -419,7 +530,7 @@ export default function MapView() {
               getCursor={({ isDragging, isHovering }: any) => isDragging ? 'grabbing' : (isHovering || hoverInfo?.object) ? 'pointer' : 'grab'}
             >
               <Map
-                mapStyle={darkMapStyle as any}
+                mapStyle={MAP_THEMES[mapTheme] as any}
                 reuseMaps
               >
                 <NavigationControl position="bottom-right" />
@@ -464,7 +575,7 @@ export default function MapView() {
                         </div>
                       </div>
                       <button 
-                        onClick={() => router.push(`/investigations/${selectedPinData.id}`)}
+                        onClick={() => openDossier(selectedPinData.entityId || selectedPinData.id)}
                         className="mt-4 w-full rounded-md bg-cyan-600/10 text-cyan-400 py-1.5 text-xs font-semibold hover:bg-cyan-600/20 transition-colors border border-cyan-500/20"
                       >
                         View Full Intel
@@ -493,7 +604,7 @@ export default function MapView() {
                         {selectedCluster.leaves.map((leaf: any, idx: number) => (
                            <div 
                              key={idx} 
-                             onClick={() => router.push(`/investigations/${leaf.properties.id}`)}
+                             onClick={() => openDossier(leaf.properties.entityId || leaf.properties.id)}
                              className="flex flex-col bg-slate-800/40 p-2.5 rounded-md border border-slate-700/50 hover:bg-slate-800/80 hover:border-cyan-500/30 transition-colors cursor-pointer group"
                            >
                              <div className="flex justify-between items-center mb-1.5">
@@ -591,7 +702,8 @@ export default function MapView() {
                 {/* Play/Pause button */}
                 <button
                   onClick={isPlaying ? stopPlayback : startPlayback}
-                  className={`ml-2 flex h-8 w-8 items-center justify-center rounded-full border transition-all ${
+                  aria-label={isPlaying ? "Pause timeline playback" : "Start timeline playback"}
+                  className={`ml-2 flex h-8 w-8 items-center justify-center rounded-full border transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                     isPlaying
                       ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-400 shadow-inner"
                       : "border-slate-700 bg-[#070a10] text-slate-400 hover:border-cyan-500/50 hover:text-cyan-400 shadow-sm"
@@ -613,9 +725,9 @@ export default function MapView() {
 
             {/* Dual Range Slider */}
             <div className="relative h-8">
-              <div className="absolute left-0 right-0 top-3 h-1.5 rounded-full bg-slate-200" />
+              <div className="absolute left-0 right-0 top-3 h-1.5 rounded-full bg-slate-800" />
               <div
-                className="absolute top-3 h-1.5 rounded-full bg-blue-500"
+                className="absolute top-3 h-1.5 rounded-full bg-cyan-500"
                 style={{
                   left: `${(sliderValue[0] / Math.max(allDateRange.length - 1, 1)) * 100}%`,
                   right: `${100 - (sliderValue[1] / Math.max(allDateRange.length - 1, 1)) * 100}%`,

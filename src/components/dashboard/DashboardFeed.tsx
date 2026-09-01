@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Activity, ChevronRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
+import { getTimeAgo } from "@/lib/utils";
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -49,10 +50,20 @@ function getExactCategoryColor(category: string) {
   return "#94a3b8";
 }
 
-export function DashboardFeed({ feed }: { feed?: any }) {
+export function DashboardFeed({ feed }: { feed?: any[] }) {
   const openDossier = useAppStore((s) => s.openDossier);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [popoverActive, setPopoverActive] = useState<string | null>(null); // Stores ID of row with active popover
+
+  const displayFeed = (feed && feed.length > 0 ? feed : mockFeedData).map((f: any, i: number) => ({
+    id: f.id || `feed-${i}`,
+    source: f.source || "OSINT",
+    sourceType: f.sourceType || (f.source?.toLowerCase().includes("blockchain") ? "blockchain" : f.source?.toLowerCase().includes("telegram") || f.source?.toLowerCase().includes("encrypted") ? "encrypted" : f.source?.toLowerCase().includes("darknet") ? "darknet" : "osint"),
+    entity: f.entity || f.entityId || "Unknown",
+    category: f.category || "General",
+    riskScore: f.riskScore || 75,
+    time: f.time || (f.timestamp ? getTimeAgo(f.timestamp) : "Recently"),
+  }));
 
   return (
     <motion.div variants={itemVariants} className="glass-card col-span-2 flex flex-col overflow-hidden">
@@ -79,7 +90,7 @@ export function DashboardFeed({ feed }: { feed?: any }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/50">
-            {mockFeedData.map((item) => (
+            {displayFeed.map((item: any) => (
               <motion.tr 
                 variants={itemVariants}
                 key={item.id} 

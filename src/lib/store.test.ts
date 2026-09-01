@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useAppStore } from './store';
 
 describe('Zustand App Store', () => {

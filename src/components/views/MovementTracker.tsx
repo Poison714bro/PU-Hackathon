@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Activity, Radio, Database, MapPin as MapPinIcon, ShieldAlert } from "lucide-react";
+import { Search, Activity, Radio, Database, MapPin as MapPinIcon, ShieldAlert, Copy, Check } from "lucide-react";
 import Map, { Marker } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { ScatterplotLayer, PathLayer, TextLayer } from "@deck.gl/layers";
@@ -11,27 +11,28 @@ import { FlyToInterpolator } from "@deck.gl/core";
 import { getDrugColor } from "@/lib/utils";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const darkMapStyle = {
+const lightMapStyle = {
   version: 8 as const,
   sources: {
-    carto: {
+    "osm-tiles": {
       type: "raster",
       tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
+        "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
       ],
       tileSize: 256,
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-      maxzoom: 20
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxzoom: 19
     }
   },
   layers: [
     {
-      id: "carto-dark",
+      id: "osm-layer",
       type: "raster",
-      source: "carto"
+      source: "osm-tiles",
+      minzoom: 0,
+      maxzoom: 22
     }
   ]
 };
@@ -42,13 +43,30 @@ interface Hop {
   lng: number;
 }
 
+interface MapViewState {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+  pitch: number;
+  bearing: number;
+  transitionDuration?: number;
+  transitionInterpolator?: any;
+}
+
 export default function MovementTracker() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEntity, setSelectedEntity] = useState<TrackerEntity | null>(null);
   const [syntheticHops, setSyntheticHops] = useState<Hop[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
   
-  const [viewState, setViewState] = useState({
+  const [viewState, setViewState] = useState<MapViewState>({
     longitude: -40.0,
     latitude: 35.0,
     zoom: 2,
@@ -216,7 +234,7 @@ export default function MovementTracker() {
               onViewStateChange={(e: { viewState: any }) => setViewState(e.viewState)}
               controller={true}
             >
-              <Map mapStyle={darkMapStyle as any} reuseMaps style={{ opacity: 0.65, mixBlendMode: 'screen' }}>
+              <Map mapStyle={lightMapStyle as any} reuseMaps>
                 {/* Pulse Animation for Last Known Physical Node */}
                 {syntheticHops.length > 0 && (
                   <Marker longitude={syntheticHops[2].lng} latitude={syntheticHops[2].lat}>
@@ -295,15 +313,51 @@ export default function MovementTracker() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-[100px_1fr] gap-y-3 text-xs flex-1">
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">WALLET</span>
-                <span className="text-cyan-400 truncate bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{selectedEntity.wallet}</span>
+              <div className="grid grid-cols-[100px_1fr] gap-y-3 text-xs flex-1 items-center">
+                <span className="text-[10px] font-bold tracking-widest text-slate-500">WALLET</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-cyan-400 truncate bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20 font-mono text-[11px] flex-1">
+                    {selectedEntity.wallet}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(selectedEntity.wallet, "wallet")}
+                    aria-label="Copy wallet address"
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors focus-visible:ring-1 focus-visible:ring-primary shrink-0"
+                    title="Copy wallet address"
+                  >
+                    {copiedField === "wallet" ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
                 
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">PGP FINGER</span>
-                <span className="text-emerald-400 truncate bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">{selectedEntity.pgp}</span>
+                <span className="text-[10px] font-bold tracking-widest text-slate-500">PGP FINGER</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-emerald-400 truncate bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 font-mono text-[11px] flex-1">
+                    {selectedEntity.pgp}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(selectedEntity.pgp, "pgp")}
+                    aria-label="Copy PGP fingerprint"
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors focus-visible:ring-1 focus-visible:ring-primary shrink-0"
+                    title="Copy PGP fingerprint"
+                  >
+                    {copiedField === "pgp" ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
                 
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 mt-1">COMMS</span>
-                <span className="text-purple-400 truncate bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">{selectedEntity.comms}</span>
+                <span className="text-[10px] font-bold tracking-widest text-slate-500">COMMS</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-purple-400 truncate bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20 font-mono text-[11px] flex-1">
+                    {selectedEntity.comms}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(selectedEntity.comms, "comms")}
+                    aria-label="Copy communications handle"
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors focus-visible:ring-1 focus-visible:ring-primary shrink-0"
+                    title="Copy handle"
+                  >
+                    {copiedField === "comms" ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
               </div>
             </div>
 

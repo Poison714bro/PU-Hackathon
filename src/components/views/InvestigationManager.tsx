@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
@@ -26,6 +25,7 @@ import {
 import { kanbanData, type KanbanColumn, type InvestigationCard } from "@/lib/mockData";
 import { motion, AnimatePresence } from "framer-motion";
 import { useKanbanBoard } from "@/hooks/useKanbanBoard";
+import { useAppStore } from "@/lib/store";
 import { 
   DndContext, 
   DragOverlay, 
@@ -67,7 +67,7 @@ const columnColors: Record<string, string> = {
 
 // ── Draggable Card Component ──
 function SortableInvestigationCard({ card }: { card: InvestigationCard }) {
-  const router = useRouter();
+  const openDossier = useAppStore((s) => s.openDossier);
   const {
     attributes,
     listeners,
@@ -97,7 +97,7 @@ function SortableInvestigationCard({ card }: { card: InvestigationCard }) {
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => router.push(`/investigations/${card.id}`)}
+      onClick={() => openDossier(card.id)}
       className={`glass-card group relative p-4 cursor-pointer hover:shadow-lg transition-all ${isDragging ? "ring-2 ring-primary ring-offset-1 ring-offset-[#0f111a]" : ""}`}
     >
       <div className="mb-2 flex items-center justify-between">

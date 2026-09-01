@@ -84,8 +84,9 @@ export default function LoginView() {
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="h-12 w-full bg-transparent px-4 text-sm font-medium text-slate-200 placeholder:text-slate-500 focus:outline-none"
                   placeholder="admin"
+                  aria-label="Username or Operator ID"
                   disabled={loading}
-                  autoComplete="off"
+                  autoComplete="username"
                 />
               </div>
 
@@ -100,7 +101,9 @@ export default function LoginView() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 w-full bg-transparent px-4 text-sm font-medium text-slate-200 placeholder:text-slate-500 focus:outline-none tracking-[0.2em]"
                   placeholder="••••••••"
+                  aria-label="Security Token / Password"
                   disabled={loading}
+                  autoComplete="current-password"
                 />
                 <div className="flex h-12 w-12 items-center justify-center border-l border-slate-700/60">
                   <Fingerprint className="h-4 w-4 text-slate-400" />
@@ -111,7 +114,8 @@ export default function LoginView() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#00c6ff] to-[#0072ff] font-bold tracking-wide text-white shadow-[0_4px_20px_rgba(0,198,255,0.4)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70"
+              aria-label="Initialize Connection"
+              className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#00c6ff] to-[#0072ff] font-bold tracking-wide text-white shadow-[0_4px_20px_rgba(0,198,255,0.4)] transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
             >
               {loading ? (
                 <span className="flex items-center gap-2 text-sm">

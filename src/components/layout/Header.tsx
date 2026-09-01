@@ -58,6 +58,7 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [notificationsList, setNotificationsList] = useState(alertsData);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -67,8 +68,23 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const setActiveView = useAppStore((s) => s.setActiveView);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const setSidebarOpen = useAppStore((s) => s.setSidebarOpen);
+  const currentUser = useAppStore((s) => s.currentUser);
+  const logout = useAppStore((s) => s.logout);
 
-  const unreadAlerts = alertsData.filter((a) => !a.acknowledged).length;
+  const markAllAsRead = () => {
+    setNotificationsList((prev) => prev.map((a) => ({ ...a, acknowledged: true })));
+  };
+
+  const userInitials = (currentUser?.username || "Agent Torres")
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "AT";
+  const displayName = currentUser?.username || "Agent Torres";
+  const displayRole = currentUser?.role ? `${currentUser.role} (Clearance L${currentUser.clearanceLevel || 1})` : "Cyber Division Lead";
+
+  const unreadAlerts = notificationsList.filter((a) => !a.acknowledged).length;
 
   const searchResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return [];
@@ -167,7 +183,8 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
         {/* Mobile Menu Toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:hidden p-2 -ml-2 text-muted-foreground transition-colors hover:text-foreground focus:outline-none"
+          aria-label="Toggle navigation menu"
+          className="md:hidden p-2 -ml-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none rounded-lg"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -190,19 +207,21 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
               onFocus={() => setSearchFocused(true)}
               onKeyDown={handleKeyDown}
               placeholder="Search wallets, aliases, locations, case IDs..."
+              aria-label="Search intelligence entities and cases"
               className="w-full bg-transparent text-sm text-foreground placeholder-slate-600 outline-none"
             />
             {searchQuery && (
               <button
                 onClick={() => onSearchChange("")}
-                className="text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                aria-label="Clear search query"
+                className="text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            <div className="flex items-center gap-1 border-l border-border pl-2">
-              <kbd className="rounded bg-slate-800/60 px-1.5 py-0.5 text-[10px] text-slate-600">
-                ⌘K
+            <div className="hidden sm:flex items-center gap-1 border-l border-border pl-2">
+              <kbd className="rounded bg-slate-800/80 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 border border-slate-700">
+                Ctrl+K
               </kbd>
             </div>
           </div>
@@ -267,7 +286,7 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
                           onSearchChange(historyItem);
                           handleSearchSubmit(historyItem);
                         }}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-800/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
                       >
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-xs font-medium text-foreground">{historyItem}</span>
@@ -297,7 +316,8 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
               setShowNotifications(!showNotifications);
               setShowProfile(false);
             }}
-            className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-slate-800/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+            aria-label="View notifications"
+            className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-slate-800/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
           >
             <Bell className="h-[18px] w-[18px]" />
             {unreadAlerts > 0 && (
@@ -318,46 +338,57 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
                     {unreadAlerts} new
                   </span>
                 </div>
-                <button className="text-[11px] text-primary hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                <button 
+                  onClick={() => markAllAsRead()}
+                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors focus-visible:ring-1 focus-visible:ring-primary rounded px-1"
+                >
                   Mark all read
                 </button>
               </div>
-              <div className="max-h-80 overflow-y-auto">
-                {alertsData.slice(0, 5).map((alert) => (
+
+              <div className="max-h-80 divide-y divide-slate-800/50 overflow-auto">
+                {notificationsList.map((alert) => (
                   <div
                     key={alert.id}
-                    className={`flex gap-3 border-b border-border px-4 py-3 transition-colors hover:bg-slate-800/30 ${
-                      !alert.acknowledged ? "bg-slate-800/10" : ""
+                    className={`p-3.5 transition-colors hover:bg-slate-800/30 ${
+                      !alert.acknowledged ? "bg-slate-900/40" : ""
                     }`}
                   >
-                    <div
-                      className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
-                        alert.severity === "critical"
-                          ? "bg-red-500 shadow-lg shadow-red-500/30"
-                          : alert.severity === "high"
-                          ? "bg-orange-500"
-                          : alert.severity === "medium"
-                          ? "bg-yellow-500"
-                          : "bg-cyan-500"
-                      }`}
-                    />
-                    <div className="flex-1">
-                      <p className="text-xs font-medium text-foreground">{alert.title}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">
-                        {alert.description}
-                      </p>
-                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-600">
-                        <Clock className="h-3 w-3" />
-                        <span>{getTimeAgo(alert.timestamp)}</span>
-                        <span>•</span>
-                        <span>{alert.source}</span>
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                          alert.severity === "critical"
+                            ? "bg-red-500/15 text-red-400 border border-red-500/20"
+                            : alert.severity === "high"
+                            ? "bg-orange-500/15 text-orange-400 border border-orange-500/20"
+                            : "bg-yellow-500/15 text-yellow-400 border border-yellow-500/20"
+                        }`}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-foreground">{alert.title}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">
+                          {alert.description}
+                        </p>
+                        <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-600">
+                          <span>{alert.source}</span>
+                          <span>•</span>
+                          <span>{getTimeAgo(alert.timestamp)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="border-t border-border px-4 py-2.5">
-                <button className="w-full rounded-lg bg-slate-800/50 py-1.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                <button 
+                  onClick={() => {
+                    setActiveView("report-alerts");
+                    setShowNotifications(false);
+                  }}
+                  className="w-full rounded-lg bg-slate-800/50 py-1.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-slate-800 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                >
                   View All Alerts →
                 </button>
               </div>
@@ -372,14 +403,15 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
               setShowProfile(!showProfile);
               setShowNotifications(false);
             }}
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background"
+            aria-label="User profile settings"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-800/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-xs font-bold text-white">
-              AT
+              {userInitials}
             </div>
-            <div className="hidden flex-col md:flex">
-              <span className="text-xs font-medium text-foreground">Agent Torres</span>
-              <span className="text-[10px] text-muted-foreground">Cyber Division</span>
+            <div className="hidden flex-col md:flex text-left">
+              <span className="text-xs font-medium text-foreground">{displayName}</span>
+              <span className="text-[10px] text-muted-foreground">{displayRole}</span>
             </div>
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
@@ -389,20 +421,29 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <div className="border-b border-border p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-sm font-bold text-white">
-                    AT
+                    {userInitials}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Agent Torres</p>
-                    <p className="text-[11px] text-muted-foreground">Cyber Division Lead</p>
+                    <p className="text-sm font-medium text-foreground">{displayName}</p>
+                    <p className="text-[11px] text-muted-foreground">{displayRole}</p>
                   </div>
                 </div>
               </div>
               <div className="p-2">
-                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-slate-800/50 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                <button 
+                  onClick={() => {
+                    setActiveView("dashboard");
+                    setShowProfile(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-slate-800/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                >
                   <User className="h-3.5 w-3.5" />
                   Profile Settings
                 </button>
-                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400 transition-colors hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background">
+                <button 
+                  onClick={() => logout()}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-red-400 transition-colors hover:bg-red-500/10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                >
                   <X className="h-3.5 w-3.5" />
                   Sign Out
                 </button>

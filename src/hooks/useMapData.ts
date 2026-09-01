@@ -19,35 +19,45 @@ function getDateRange(start: string, end: string): string[] {
 
 export function useMapData(
   zoom: number,
-  initialCategories: string[],
+  initialCategories: string[] | Set<string>,
   riskRange?: [number, number]
 ) {
   const [globalMinDate, setGlobalMinDate] = useState(defaultMin);
   const [globalMaxDate, setGlobalMaxDate] = useState(defaultMax);
   const [dateRange, setDateRange] = useState<[string, string]>([defaultMin, defaultMax]);
-  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(initialCategories));
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(
+    () => (initialCategories instanceof Set ? new Set(initialCategories) : new Set(initialCategories || []))
+  );
   const [mapPinsData, setMapPinsData] = useState<MapPin[]>([]);
   const [isClient, setIsClient] = useState(false);
 
-  // Sync external categories changes
+  const categoriesKey = useMemo(
+    () => Array.from(initialCategories || []).sort().join(','),
+    [initialCategories]
+  );
+
+  // Sync external categories changes only when serialized contents change
   useEffect(() => {
-    setActiveCategories(new Set(initialCategories));
-  }, [initialCategories]);
+    setActiveCategories(new Set(initialCategories || []));
+  }, [categoriesKey]);
+
+  const riskMin = riskRange?.[0] ?? 0;
+  const riskMax = riskRange?.[1] ?? 100;
+  const categoriesParam = useMemo(() => Array.from(activeCategories).sort().join(','), [activeCategories]);
 
   // Server-side filtering: Fetch from API whenever dateRange or categories change
   useEffect(() => {
+    let isCancelled = false;
     setIsClient(true);
-    
-    // Convert Set to comma separated string for the backend
-    const categoriesParam = Array.from(activeCategories).join(',');
     
     api.map.pins({
       startDate: dateRange[0],
       endDate: dateRange[1],
       drugCategory: categoriesParam,
-      riskMin: riskRange?.[0] ?? 0,
-      riskMax: riskRange?.[1] ?? 100
+      riskMin,
+      riskMax
     }).then((res) => {
+      if (isCancelled) return;
       if (res.ok && res.data) {
         setMapPinsData(res.data.map((p: any) => ({
           ...p,
@@ -57,9 +67,14 @@ export function useMapData(
         })));
       }
     }).catch(err => {
+      if (isCancelled) return;
       console.error("Critical Map Fetch Error:", err);
     });
-  }, [dateRange, activeCategories, riskRange]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [dateRange[0], dateRange[1], categoriesParam, riskMin, riskMax]);
 
   // Keep filteredPins as an alias for mapPinsData to avoid refactoring MapView deeply
   const filteredPins = mapPinsData;

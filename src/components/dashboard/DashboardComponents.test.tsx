@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { KpiCard, SourceBadge } from './DashboardComponents';
 import { Activity } from 'lucide-react';
 
@@ -41,7 +42,7 @@ describe('DashboardComponents', () => {
     });
 
     it('handles click events', () => {
-      const handleClick = jest.fn();
+      const handleClick = vi.fn();
       render(
         <KpiCard 
           title="Clickable" 

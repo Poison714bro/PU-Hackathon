@@ -201,10 +201,10 @@ export default function TimelineReconstructor() {
     const t3 = setTimeout(() => setSearchStep(4), 3800); // Reconstructing
     
     let success = false;
-    let errorMsg = null;
+    let errorMsg: string | null = null;
 
     try {
-      const res = await fetch('/api/reconstruct', {
+      const res = await fetch('/api/v1/reconstruct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query })

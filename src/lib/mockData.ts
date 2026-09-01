@@ -70,6 +70,7 @@ export interface MapPin {
   riskScore: number;
   linkedNodeIds: string[];
   originRoute: Array<{ lat: number; lng: number }>;
+  entityId?: string;
   confiscatedAmount?: string;
   arrestCount?: number;
   suspectNames?: string[];

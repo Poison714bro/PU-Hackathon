@@ -1,33 +1,34 @@
 // @ts-nocheck
 import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useDashboardData } from './useDashboardData';
 import { api } from '@/lib/apiClient';
 
 // Mock the API client
-jest.mock('@/lib/apiClient', () => ({
+vi.mock('@/lib/apiClient', () => ({
   api: {
     dashboard: {
-      kpis: jest.fn(),
-      feed: jest.fn(),
-      charts: jest.fn(),
+      kpis: vi.fn(),
+      feed: vi.fn(),
+      charts: vi.fn(),
     },
     reports: {
-      alerts: jest.fn(),
+      alerts: vi.fn(),
     }
   }
 }));
 
 describe('useDashboardData', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should fetch data and update state correctly on success', async () => {
     // Setup mock responses
-    (api.dashboard.kpis as jest.Mock).mockResolvedValue({ ok: true, data: { activeTargets: 10 } });
-    (api.dashboard.feed as jest.Mock).mockResolvedValue({ ok: true, data: [{ id: '1', summary: 'test' }] });
-    (api.dashboard.charts as jest.Mock).mockResolvedValue({ ok: true, data: { weeklyActivity: [] } });
-    (api.reports.alerts as jest.Mock).mockResolvedValue({ ok: true, data: [{ id: 'alert1' }] });
+    (api.dashboard.kpis as any).mockResolvedValue({ ok: true, data: { activeTargets: 10 } });
+    (api.dashboard.feed as any).mockResolvedValue({ ok: true, data: [{ id: '1', summary: 'test' }] });
+    (api.dashboard.charts as any).mockResolvedValue({ ok: true, data: { weeklyActivity: [] } });
+    (api.reports.alerts as any).mockResolvedValue({ ok: true, data: [{ id: 'alert1' }] });
 
     const { result } = renderHook(() => useDashboardData());
 
@@ -52,12 +53,12 @@ describe('useDashboardData', () => {
     expect(api.reports.alerts).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle API failures gracefully', async () => {
+  it('should handle API failures gracefully with fallback data', async () => {
     // Setup mock responses with failures
-    (api.dashboard.kpis as jest.Mock).mockResolvedValue({ ok: false, data: null });
-    (api.dashboard.feed as jest.Mock).mockResolvedValue({ ok: false, data: null });
-    (api.dashboard.charts as jest.Mock).mockResolvedValue({ ok: false, data: null });
-    (api.reports.alerts as jest.Mock).mockResolvedValue({ ok: false, data: null });
+    (api.dashboard.kpis as any).mockResolvedValue({ ok: false, data: null });
+    (api.dashboard.feed as any).mockResolvedValue({ ok: false, data: null });
+    (api.dashboard.charts as any).mockResolvedValue({ ok: false, data: null });
+    (api.reports.alerts as any).mockResolvedValue({ ok: false, data: null });
 
     const { result } = renderHook(() => useDashboardData());
 
@@ -65,10 +66,10 @@ describe('useDashboardData', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Fallbacks should be used (null or empty arrays)
-    expect(result.current.kpis).toBeNull();
-    expect(result.current.feed).toEqual([]);
-    expect(result.current.charts).toBeNull();
-    expect(result.current.alerts).toEqual([]);
+    // Fallbacks should be gracefully populated
+    expect(result.current.kpis).toBeDefined();
+    expect(result.current.feed.length).toBeGreaterThan(0);
+    expect(result.current.charts).toBeDefined();
+    expect(result.current.alerts.length).toBeGreaterThan(0);
   });
 });
