@@ -9,13 +9,22 @@ try:
     from psycopg2 import sql
     import psycopg2.extras
 except ImportError:
-    print("Error: psycopg2 is not installed. Please run 'pip install psycopg2-binary'")
-    sys.exit(1)
+    psycopg2 = None
 
 from .sources.darkweb_forum import DarkwebForumSource
 
+# Semantica Extraction & Intelligence Engines
+from analysis.extraction.ner import CybercrimeNER
+from analysis.extraction.triplet_extractor import TripletExtractor
+from analysis.extraction.event_detector import EventDetector
+from analysis.conflicts.conflict_detector import ConflictDetector
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("IngestionPipeline")
+
+_NER = CybercrimeNER()
+_TRIPLET_EXTRACTOR = TripletExtractor(_NER)
+_EVENT_DETECTOR = EventDetector()
 
 def get_db_connection():
     db_url = os.environ.get("DATABASE_URL")
@@ -85,17 +94,33 @@ async def run_pipeline():
             # In a real scenario, write to a local file or fallback queue here
             continue
 
-        # 4. Normalize and Structure Data
+        # 4. Normalize, Extract Semantics, and Structure Data
         entities = []
         feed_entries = []
         
         for payload in raw_payloads:
+            raw_text = payload.get("body") or payload.get("content") or payload.get("message") or ""
+            author = payload.get("author") or payload.get("username") or "Unknown"
+            
+            # Semantica Extraction pass
+            iocs = _NER.extract_summary(raw_text)
+            triplets = _TRIPLET_EXTRACTOR.extract_triplets_from_post(author, raw_text, platform=source.get_source_name())
+            events = _EVENT_DETECTOR.detect_events(raw_text, {"author": author})
+
             entity = source.normalize_entity(payload)
             if entity:
+                entity.setdefault("rawData", {})
+                entity["rawData"]["semantica_iocs"] = iocs
+                entity["rawData"]["semantica_triplets"] = triplets
+                entity["rawData"]["semantica_events"] = events
                 entities.append(entity)
                 
             entry = source.normalize_feed_entry(payload)
             if entry:
+                entry.setdefault("rawData", {})
+                entry["rawData"]["semantica_iocs"] = iocs
+                entry["rawData"]["semantica_triplets"] = triplets
+                entry["rawData"]["semantica_events"] = events
                 feed_entries.append(entry)
                 
         # 5. Batch Upsert Normalized Data (Partial Success Handling)

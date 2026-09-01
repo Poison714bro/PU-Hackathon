@@ -1,3 +1,4 @@
+import type React from "react";
 import { ArrowLeft } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import type { ViewType } from "@/app/page";

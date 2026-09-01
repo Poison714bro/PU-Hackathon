@@ -1,3 +1,4 @@
+import type React from "react";
 import { Search } from "lucide-react";
 
 interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {

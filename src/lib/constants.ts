@@ -1,3 +1,4 @@
+import type React from "react";
 import {
   LayoutDashboard,
   Map,
@@ -14,6 +15,7 @@ import {
   Bitcoin,
   Lock,
   Monitor,
+  Sparkles,
 } from "lucide-react";
 import type { ViewType } from "@/app/page";
 

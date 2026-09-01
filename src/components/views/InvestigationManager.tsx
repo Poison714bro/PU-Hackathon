@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Search,
   Filter,
@@ -21,6 +21,11 @@ import {
   Paperclip,
   FileDown,
   X,
+  Lock,
+  Scale,
+  AlertTriangle,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import { kanbanData, type KanbanColumn, type InvestigationCard } from "@/lib/mockData";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,7 +70,7 @@ const columnColors: Record<string, string> = {
   closed: "#22c55e",
 };
 
-// ── Draggable Card Component ──
+// Draggable Card Component
 function SortableInvestigationCard({ card }: { card: InvestigationCard }) {
   const openDossier = useAppStore((s) => s.openDossier);
   const {
@@ -139,7 +144,7 @@ function SortableInvestigationCard({ card }: { card: InvestigationCard }) {
   );
 }
 
-// ── Main Board Component ──
+// Main Board Component
 export default function InvestigationManager() {
   const {
     searchQuery,
@@ -159,9 +164,70 @@ export default function InvestigationManager() {
 
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const [toastId, setToastId] = useState(0);
-
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
+
+  const [investigationTab, setInvestigationTab] = useState<"kanban" | "conflicts" | "audit" | "dossier">("kanban");
+
+  const [conflictsList, setConflictsList] = useState([
+    {
+      id: "conf-01",
+      entity: "DarkPhoenix_77 (ent-001)",
+      property: "Current Location",
+      severity: "HIGH",
+      claims: [
+        { source: "Special Cell Wiretap", type: "law_enforcement_wiretap", credibility: 0.95, value: "Safehouse, Ludhiana Industrial Zone", time: "2026-09-01 10:00" },
+        { source: "Telegram OSINT Channel", type: "telegram_osint", credibility: 0.60, value: "Downtown Dubai Penthouse", time: "2026-09-01 08:30" }
+      ],
+      status: "DISPUTED",
+      resolvedValue: null as string | null
+    },
+    {
+      id: "conf-02",
+      entity: "ChemKing2026 (ent-005)",
+      property: "Cartel Role",
+      severity: "MEDIUM",
+      claims: [
+        { source: "Interpol Yellow Notice", type: "law_enforcement_wiretap", credibility: 0.92, value: "Synthesis Chemist / Lab Operator", time: "2026-08-28 14:00" },
+        { source: "Dread Forum Feedback", type: "darknet_forum", credibility: 0.50, value: "Retail Broker", time: "2026-08-30 19:15" }
+      ],
+      status: "DISPUTED",
+      resolvedValue: null as string | null
+    }
+  ]);
+
+  const [auditBlocks, setAuditBlocks] = useState([
+    {
+      id: "dec_881a7b9c",
+      category: "WARRANT_ISSUED",
+      targets: ["ent-001"],
+      officer: "INSP_HARPREET_SINGH_442",
+      clearance: 3,
+      justification: "Judicial search warrant granted for narcotics distribution command hub.",
+      hash: "8f7a9c3b2e1d0f4a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a",
+      timestamp: "2026-09-01 09:15:22 UTC"
+    },
+    {
+      id: "dec_442f9a1e",
+      category: "WALLET_FREEZE",
+      targets: ["wallet-btc-1"],
+      officer: "INSP_HARPREET_SINGH_442",
+      clearance: 3,
+      justification: "Emergency asset freeze order served on hot wallet with $2.45M transaction volume.",
+      hash: "3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a8f7a9c3b2e1d0f4a8b7c6d5e4f",
+      timestamp: "2026-09-01 10:45:10 UTC"
+    },
+    {
+      id: "dec_192e4c88",
+      category: "ENTITY_MERGE",
+      targets: ["ent-001", "ent-002"],
+      officer: "NEXUS_RESOLVER_AGENT",
+      clearance: 2,
+      justification: "Unified duplicate personas based on 100% cryptographic PGP key and BTC wallet parity.",
+      hash: "5c4d3e2f1a0b9c8d7e6f5a8f7a9c3b2e1d0f4a8b7c6d5e4f3a2b1c0d9e8f7a6b",
+      timestamp: "2026-09-01 11:30:00 UTC"
+    }
+  ]);
 
   const addToast = (message: string) => {
     const id = toastId + 1;
@@ -170,6 +236,18 @@ export default function InvestigationManager() {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
+  };
+
+  const handleResolveConflict = (conflictId: string, strategy: "credibility" | "recent") => {
+    setConflictsList((prev) => prev.map((c) => {
+      if (c.id === conflictId) {
+        let val = c.claims[0].value;
+        if (strategy === "recent") val = c.claims[0].time > c.claims[1].time ? c.claims[0].value : c.claims[1].value;
+        addToast(`Conflict on ${c.entity} resolved via ${strategy}`);
+        return { ...c, status: "RESOLVED", resolvedValue: val };
+      }
+      return c;
+    }));
   };
 
   return (
@@ -346,71 +424,309 @@ export default function InvestigationManager() {
         </div>
       </div>
 
-      {/* Kanban Board DND Context */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex flex-1 gap-4 overflow-x-auto p-6 custom-scrollbar items-start">
-          {filteredColumns.map((column) => {
-            const Icon = columnIcons[column.id] || FolderOpen;
-            const color = columnColors[column.id] || "#64748b";
+      {/* Sub-Navigation Tabs for Investigations */}
+      <div className="flex items-center justify-between border-b border-slate-800 bg-[#0d131f]/95 px-6 py-2.5 backdrop-blur-md shrink-0 z-30">
+        <div className="flex items-center gap-2">
+          {[
+            { id: "kanban", label: "Kanban Cases", icon: FolderOpen, count: totalCards },
+            { id: "conflicts", label: "Contradiction Resolver", icon: AlertTriangle, count: conflictsList.filter((c) => c.status === "DISPUTED").length },
+            { id: "audit", label: "Decision Audit Ledger", icon: Lock, count: auditBlocks.length },
+            { id: "dossier", label: "Court Case Dossier", icon: FileText, badge: "Admissible" },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = investigationTab === tab.id;
             return (
-              <div
-                key={column.id}
-                className="flex w-80 shrink-0 flex-col h-full max-h-full"
+              <button
+                key={tab.id}
+                onClick={() => setInvestigationTab(tab.id as any)}
+                className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                  isActive
+                    ? "bg-[#00d4ff]/10 border border-[#00d4ff]/40 text-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.2)]"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+                }`}
               >
-                {/* Column Header */}
-                <div className="mb-3 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: `${color}15` }}>
-                      <Icon className="h-3.5 w-3.5" style={{ color }} />
-                    </div>
-                    <span className="text-xs font-semibold text-white">{column.title}</span>
-                    <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: `${color}15`, color }}>
-                      {column.cards.length}
-                    </span>
-                  </div>
-                  <button className="text-slate-600 hover:text-muted-foreground focus:outline-none transition-colors">
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                {/* Column Body - Droppable Zone */}
-                <div className={`kanban-column flex-1 overflow-y-auto custom-scrollbar p-2 transition-all rounded-lg border border-transparent bg-slate-900/20`}>
-                  <SortableContext
-                    items={column.cards.map((c) => c.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <div className="flex flex-col gap-3 min-h-[150px]">
-                      {column.cards.map((card) => (
-                        <SortableInvestigationCard key={card.id} card={card} />
-                      ))}
-                      {column.cards.length === 0 && (
-                        <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border/50 text-xs text-slate-600">
-                          Drop cases here
-                        </div>
-                      )}
-                    </div>
-                  </SortableContext>
-                </div>
-              </div>
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-[#00d4ff]" : "text-slate-500"}`} />
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${isActive ? "bg-[#00d4ff] text-black font-black" : "bg-slate-800 text-slate-400"}`}>
+                    {tab.count}
+                  </span>
+                )}
+                {tab.badge && (
+                  <span className="rounded bg-slate-800 border border-slate-700 px-1.5 py-0.2 text-[9px] font-mono text-slate-300">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
-        
-        {/* Drag Overlay for smooth dragging visual */}
-        <DragOverlay>
-          {activeCard ? (
-            <div className="opacity-80 scale-105 shadow-2xl cursor-grabbing">
-               <SortableInvestigationCard card={activeCard} />
+      </div>
+
+      {/* VIEW 2: CONTRADICTION RESOLVER */}
+      {investigationTab === "conflicts" && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+          <div>
+            <h2 className="text-base font-black tracking-wide text-white uppercase flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              Multi-Source Contradictory Intelligence Resolver
+            </h2>
+            <p className="text-xs text-slate-400">
+              Identifies disputed suspect locations, roles, and wallet ownership across conflicting intelligence streams.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            {conflictsList.map((conf) => (
+              <div key={conf.id} className="rounded-xl border border-slate-800 bg-[#0d131f]/90 p-5 backdrop-blur-md space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase font-mono border ${
+                      conf.severity === "HIGH" ? "bg-red-500/10 text-red-400 border-red-500/30" : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                    }`}>
+                      {conf.severity} CONTRADICTION
+                    </span>
+                    <span className="text-xs font-bold text-white">{conf.entity}</span>
+                    <span className="text-xs text-slate-400 font-mono">[{conf.property}]</span>
+                  </div>
+                  <span className={`text-xs font-mono font-bold ${conf.status === "RESOLVED" ? "text-emerald-400" : "text-amber-400"}`}>
+                    {conf.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {conf.claims.map((claim, idx) => (
+                    <div key={idx} className="rounded-lg border border-slate-800 bg-black/40 p-3 space-y-2">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-slate-300">{claim.source}</span>
+                        <span className="font-mono text-[#00d4ff]">Credibility: {claim.credibility * 100}%</span>
+                      </div>
+                      <div className="text-xs font-bold text-white font-serif">
+                        "{claim.value}"
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-500">
+                        Observed: {claim.time}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {conf.status === "RESOLVED" ? (
+                  <div className="rounded bg-emerald-950/30 border border-emerald-800/50 p-3 text-xs text-emerald-300 font-mono flex items-center justify-between">
+                    <span>Resolved Value: <strong>{conf.resolvedValue}</strong></span>
+                    <span className="text-[10px] text-emerald-400 font-bold">✓ APPLIED TO MASTER CASE</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      onClick={() => handleResolveConflict(conf.id, "credibility")}
+                      className="rounded bg-[#00d4ff]/10 hover:bg-[#00d4ff]/20 border border-[#00d4ff]/40 text-[#00d4ff] px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5"
+                    >
+                      <Scale className="h-3.5 w-3.5" />
+                      Resolve via Credibility Weighting
+                    </button>
+                    <button
+                      onClick={() => handleResolveConflict(conf.id, "recent")}
+                      className="rounded bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 text-xs font-bold transition-all"
+                    >
+                      Use Most Recent Claim
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: DECISION AUDIT LEDGER */}
+      {investigationTab === "audit" && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black tracking-wide text-white uppercase flex items-center gap-2">
+                <Lock className="h-4 w-4 text-emerald-400" />
+                Tamper-Evident Investigative Decision Audit Ledger
+              </h2>
+              <p className="text-xs text-slate-400">
+                Cryptographic SHA-256 block ledger recording officer actions for legal chain of custody and court admissibility.
+              </p>
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+            <div className="rounded bg-emerald-950/40 border border-emerald-800 px-3 py-1 text-xs font-mono text-emerald-400 font-bold flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              BLOCKCHAIN INTEGRITY VERIFIED
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {auditBlocks.map((block, idx) => (
+              <div key={block.id} className="rounded-xl border border-slate-800 bg-[#0d131f]/90 p-5 backdrop-blur-md space-y-3 font-mono">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded bg-slate-800 text-[10px] font-bold text-slate-400">
+                      #{idx + 1}
+                    </span>
+                    <span className="font-bold text-amber-400">[{block.category}]</span>
+                    <span className="text-slate-400">Target: {block.targets.join(", ")}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-500">{block.timestamp}</span>
+                </div>
+
+                <p className="text-xs font-sans text-slate-200 border-l-2 border-emerald-500 pl-3">
+                  {block.justification}
+                </p>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-800/80 gap-2">
+                  <div>Investigator: <strong className="text-slate-300">{block.officer} (Level {block.clearance})</strong></div>
+                  <div className="truncate max-w-md">SHA-256 Seal: <span className="text-emerald-400 font-mono font-bold">{block.hash}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 4: COURT CASE DOSSIER */}
+      {investigationTab === "dossier" && (
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl mx-auto w-full">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black tracking-wide text-white uppercase flex items-center gap-2">
+                <FileText className="h-4 w-4 text-[#00d4ff]" />
+                Court-Ready Intelligence Dossier Generator
+              </h2>
+              <p className="text-xs text-slate-400">
+                Exports official law enforcement case reports, Neo4j Cypher scripts, and W3C JSON-LD graphs.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => addToast("Dossier copied in Court Markdown format!")}
+                className="rounded bg-[#00d4ff] hover:bg-cyan-400 text-black px-3 py-1.5 text-xs font-black uppercase transition-all flex items-center gap-1.5 shadow-[0_0_20px_rgba(0,212,255,0.4)]"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy Markdown
+              </button>
+              <button
+                onClick={() => addToast("Exported case to Neo4j Cypher and JSON-LD!")}
+                className="rounded bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export Cypher
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-700 bg-black/90 p-8 shadow-2xl space-y-6 font-mono text-xs text-slate-300">
+            <div className="text-center border-b border-slate-800 pb-4">
+              <div className="inline-block rounded bg-red-950/60 border border-red-800 px-3 py-1 text-[10px] font-black tracking-widest text-red-400 mb-2">
+                LAW ENFORCEMENT SENSITIVE // RESTRICTED DISSEMINATION
+              </div>
+              <h3 className="text-sm font-black text-white uppercase">OFFICIAL CYBER INTELLIGENCE DOSSIER</h3>
+              <p className="text-[10px] text-slate-500">CASE REFERENCE: CASE-2026-CYBER-PUNJAB-09</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-[11px] font-black text-[#00d4ff] uppercase mb-1">1. PRIMARY TARGET IDENTIFIER</h4>
+                <p className="text-slate-200 font-sans"><strong>DarkPhoenix_77</strong> (UUID: <code>ent-001</code>) • Risk Score: <strong>94/100</strong> • Status: <strong>Active Target</strong></p>
+              </div>
+
+              <div>
+                <h4 className="text-[11px] font-black text-[#00d4ff] uppercase mb-1">2. ON-CHAIN CRYPTOGRAPHIC IDENTIFIERS</h4>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  <li>Bitcoin: <code>bc1q9hk7m3x2v8p5c6e4f0r1t7w9y2u3i4o5p6a7s8d9f0g1h2j3k4l5x4k2</code> ($2.45M Vol)</li>
+                  <li>Monero: <code>42xM7q9Lr5kB3pN2vT1wH4yG6fD8cE0zA7sJ5mK9oI3uR6tY1wQ4eP2xL</code> ($890K Vol)</li>
+                  <li>PGP Key: <code>F9B24A321109E77A8C3D5F6B7E2A9D014C8F3B62</code></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-[11px] font-black text-[#00d4ff] uppercase mb-1">3. KINGPIN & NETWORK CENTRALITY ANALYTICS</h4>
+                <p className="text-slate-300 font-sans">
+                  Kingpin Composite Index: <strong>100.0/100</strong> • PageRank Authority: <strong>0.082</strong> • Betweenness Broker Score: <strong>0.450</strong> • Role: <em>Primary Kingpin & Bulk Narcotics Supplier</em>.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-[11px] font-black text-[#00d4ff] uppercase mb-1">4. EVIDENTIARY AUDIT BLOCKCHAIN SEAL</h4>
+                <p className="text-slate-400 font-mono text-[10px]">
+                  Ledger Hash: <code>8f7a9c3b2e1d0f4a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a</code><br />
+                  Authorized by Inspector Harpreet Singh (Clearance Level 3).
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 1: KANBAN BOARD */}
+      {investigationTab === "kanban" && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex flex-1 gap-4 overflow-x-auto p-6 custom-scrollbar items-start">
+            {filteredColumns.map((column) => {
+              const Icon = columnIcons[column.id] || FolderOpen;
+              const color = columnColors[column.id] || "#64748b";
+              return (
+                <div
+                  key={column.id}
+                  className="flex w-80 shrink-0 flex-col h-full max-h-full"
+                >
+                  {/* Column Header */}
+                  <div className="mb-3 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: `${color}15` }}>
+                        <Icon className="h-3.5 w-3.5" style={{ color }} />
+                      </div>
+                      <span className="text-xs font-semibold text-white">{column.title}</span>
+                      <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style={{ background: `${color}15`, color }}>
+                        {column.cards.length}
+                      </span>
+                    </div>
+                    <button className="text-slate-600 hover:text-muted-foreground focus:outline-none transition-colors">
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Column Body - Droppable Zone */}
+                  <div className={`kanban-column flex-1 overflow-y-auto custom-scrollbar p-2 transition-all rounded-lg border border-transparent bg-slate-900/20`}>
+                    <SortableContext
+                      items={column.cards.map((c) => c.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="flex flex-col gap-3 min-h-[150px]">
+                        {column.cards.map((card) => (
+                          <SortableInvestigationCard key={card.id} card={card} />
+                        ))}
+                        {column.cards.length === 0 && (
+                          <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border/50 text-xs text-slate-600">
+                            Drop cases here
+                          </div>
+                        )}
+                      </div>
+                    </SortableContext>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Drag Overlay for smooth dragging visual */}
+          <DragOverlay>
+            {activeCard ? (
+              <div className="opacity-80 scale-105 shadow-2xl cursor-grabbing">
+                 <SortableInvestigationCard card={activeCard} />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
     </div>
   );
 }

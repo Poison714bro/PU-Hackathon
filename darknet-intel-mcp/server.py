@@ -8,10 +8,21 @@
 # ═══════════════════════════════════════════════════════════════════════════
 
 import json
+import sys
+from pathlib import Path
 from mcp.server import MCPServer
 
-# ── Initialize the server ──────────────────────────────────────────────────
+# Add parent directory to sys.path to access analysis modules
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from analysis.correlation import CorrelationEngine
+from analysis.extraction.ner import CybercrimeNER
+from analysis.exporters.dossier_exporter import DossierExporter
+
+# ── Initialize the server and correlation engine ────────────────────────────
 mcp = MCPServer("Darknet-Intel-Server")
+_CORRELATION_ENGINE = CorrelationEngine()
+_CYBERCRIME_NER = CybercrimeNER()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -546,6 +557,141 @@ def query_market_pricing(substance: str) -> str:
         return json.dumps({"error": f"No pricing data found for substance '{substance}'."})
     except Exception as e:
         return json.dumps({"error": f"Internal server error: {str(e)}"}, indent=2)
+
+
+# ── Semantica Forensic Intelligence Tools ──────────────────────────────────
+
+def _init_correlation_graph():
+    """Populates the in-memory correlation graph with active database entities."""
+    for ent_id, ent_data in _ENTITY_GRAPH_DB.items():
+        _CORRELATION_ENGINE.add_entity_node(
+            ent_id,
+            node_type="suspect",
+            label=ent_data.get("primary_alias", ent_id),
+            riskScore=ent_data.get("risk_score", 0),
+            category=ent_data.get("status", "Active")
+        )
+        for w in ent_data.get("linked_wallets", []):
+            _CORRELATION_ENGINE.add_entity_node(w, node_type="wallet", label=f"Wallet {w[:8]}...")
+            _CORRELATION_ENGINE.add_entity_link(ent_id, w, relation="OWNS_WALLET", weight=1.0, timestamp="2026-09-01")
+        for linked in ent_data.get("linked_entities", []):
+            if linked in _ENTITY_GRAPH_DB:
+                _CORRELATION_ENGINE.add_entity_link(ent_id, linked, relation="ASSOCIATED_WITH", weight=2.0, timestamp="2026-09-01")
+
+_init_correlation_graph()
+
+
+@mcp.tool()
+def detect_criminal_syndicates(algorithm: str = "louvain") -> str:
+    """
+    Detects criminal rings, money-laundering clusters, and darknet syndicates
+    using advanced community detection (Louvain / Label Propagation).
+    """
+    try:
+        syndicates = _CORRELATION_ENGINE.detect_syndicates(algorithm=algorithm)
+        metrics = _CORRELATION_ENGINE.community_detector.calculate_community_metrics(_CORRELATION_ENGINE.graph, syndicates)
+        return json.dumps({"syndicates": syndicates, "metrics": metrics}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"Syndicate detection failed: {str(e)}"}, indent=2)
+
+
+@mcp.tool()
+def identify_network_kingpins(top_k: int = 5) -> str:
+    """
+    Identifies kingpins, financial hubs, and critical brokers in the network
+    using PageRank and Betweenness Centrality.
+    """
+    try:
+        kingpins = _CORRELATION_ENGINE.identify_kingpins(top_k=top_k)
+        return json.dumps({"top_kingpins": kingpins}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"Kingpin identification failed: {str(e)}"}, indent=2)
+
+
+@mcp.tool()
+def trace_laundering_path(source_entity: str, target_entity: str) -> str:
+    """
+    Traces the shortest connection path and transaction route between two entities or wallets.
+    """
+    try:
+        route = _CORRELATION_ENGINE.trace_laundering_path(source_entity, target_entity)
+        if route:
+            return json.dumps(route, indent=2)
+        return json.dumps({"message": f"No active connection path between '{source_entity}' and '{target_entity}'."}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"Path tracing failed: {str(e)}"}, indent=2)
+
+
+@mcp.tool()
+def predict_hidden_links(top_k: int = 5) -> str:
+    """
+    Predicts hidden or covert connections between suspects based on shared infrastructure.
+    """
+    try:
+        predictions = _CORRELATION_ENGINE.predict_covert_links(top_k=top_k)
+        return json.dumps({"predicted_links": predictions}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"Link prediction failed: {str(e)}"}, indent=2)
+
+
+@mcp.tool()
+def resolve_suspect_profiles(entity_a_id: str, entity_b_id: str) -> str:
+    """
+    Performs multi-factor cryptographic, alias, and property matching to determine
+    if two suspect IDs belong to the same real-world persona.
+    """
+    try:
+        ent_a = _ENTITY_GRAPH_DB.get(entity_a_id)
+        ent_b = _ENTITY_GRAPH_DB.get(entity_b_id)
+        if not ent_a or not ent_b:
+            return json.dumps({"error": f"One or both entities not found ({entity_a_id}, {entity_b_id})."}, indent=2)
+        
+        result = _CORRELATION_ENGINE.resolve_suspect_profiles(ent_a, ent_b)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"Entity resolution failed: {str(e)}"}, indent=2)
+
+
+@mcp.tool()
+def extract_cybercrime_iocs(raw_text: str) -> str:
+    """
+    Extracts forensic artifacts (Bitcoin/Monero/Ethereum wallets, PGP fingerprints,
+    .onion addresses, Telegram handles, contraband keywords) from unstructured text.
+    """
+    try:
+        iocs = _CYBERCRIME_NER.extract_summary(raw_text)
+        return json.dumps(iocs, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"IOC extraction failed: {str(e)}"}, indent=2)
+
+
+@mcp.tool()
+def audit_investigative_action(
+    action_category: str,
+    target_entity_ids_comma_separated: str,
+    investigator_id: str,
+    clearance_level: int,
+    justification: str
+) -> str:
+    """
+    Cryptographically records an investigative action to the tamper-evident audit chain.
+    """
+    try:
+        targets = [t.strip() for t in target_entity_ids_comma_separated.split(",") if t.strip()]
+        decision = _CORRELATION_ENGINE.audit_investigative_action(
+            category=action_category,
+            targets=targets,
+            officer_id=investigator_id,
+            clearance=clearance_level,
+            justification=justification
+        )
+        return json.dumps({
+            "status": "RECORDED_TO_AUDIT_CHAIN",
+            "decision": decision.__dict__,
+            "block_hash": decision.cryptographic_hash
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"Audit recording failed: {str(e)}"}, indent=2)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

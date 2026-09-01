@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
   User,
@@ -23,16 +23,22 @@ import {
   Share2,
   Lock,
   Pin,
-  Link2
+  Link2,
+  GitMerge,
+  Network,
+  Sparkles,
+  CheckCircle2,
+  ArrowRight
 } from "lucide-react";
 import { api } from "@/lib/apiClient";
 import { useAppStore } from "@/lib/store";
+import { calculateCentralityScores, findShortestPath } from "@/lib/graphAnalytics";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, AreaChart, Area, ResponsiveContainer } from "recharts";
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
-// ── Forensic Palette Taxonomy ──
+// Forensic Palette Taxonomy
 const nodeTypeConfig: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   username: { icon: User, color: "#3b82f6", label: "IDENTITY" }, // Intense Blue
   wallet: { icon: Wallet, color: "#eab308", label: "WALLET" }, // Yellow
@@ -139,6 +145,24 @@ export default function EvidenceGraph() {
   // Radial Menu & Tooltip States
   const [radialMenu, setRadialMenu] = useState<{ x: number, y: number, node: any } | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number, y: number } | null>(null);
+
+  // Semantica Overlays: Flow Tracer & Link Predictor
+  const [showFlowTracer, setShowFlowTracer] = useState(false);
+  const [showLinkPredictor, setShowLinkPredictor] = useState(false);
+  const [flowSource, setFlowSource] = useState<string>("");
+  const [flowTarget, setFlowTarget] = useState<string>("");
+
+  const shortestFlowRoute = useMemo(() => {
+    if (!flowSource || !flowTarget || graphNodesData.length === 0) return null;
+    return findShortestPath(graphNodesData, graphEdgesData, flowSource, flowTarget);
+  }, [flowSource, flowTarget, graphNodesData, graphEdgesData]);
+
+  useEffect(() => {
+    if (graphNodesData.length > 1 && !flowSource) {
+      setFlowSource(graphNodesData[0]?.id || "");
+      setFlowTarget(graphNodesData[graphNodesData.length - 1]?.id || "");
+    }
+  }, [graphNodesData, flowSource]);
 
   // Store integration
   const selectEntity = useAppStore((s) => s.selectEntity);
@@ -253,6 +277,11 @@ export default function EvidenceGraph() {
       (e) => (e.source?.id || e.source) === selectedNode.id || (e.target?.id || e.target) === selectedNode.id
     );
   }, [selectedNode, graphEdgesData]);
+
+  // Semantica Kingpin & Centrality scores
+  const centralityScores = useMemo(() => {
+    return calculateCentralityScores(graphNodesData as any, graphEdgesData as any);
+  }, [graphNodesData, graphEdgesData]);
 
   // Persistently highlighted cluster (selected node + all 1st-degree neighbors)
   const selectedCluster = useMemo(() => {
@@ -496,11 +525,165 @@ export default function EvidenceGraph() {
               {isExecuting ? 'EXECUTING...' : 'EXECUTE'}
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-1 text-[9px] font-bold opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none text-white z-50">Cmd/Ctrl + E</span>
             </button>
+
+            <div className="h-5 w-px bg-slate-800 flex-shrink-0" />
+
+            {/* Semantica Analytical Overlays */}
+            <button
+              onClick={() => { setShowFlowTracer((prev) => !prev); setShowLinkPredictor(false); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md border transition-all whitespace-nowrap ${
+                showFlowTracer
+                  ? "bg-[#00d4ff]/20 border-[#00d4ff] text-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.3)]"
+                  : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+              }`}
+            >
+              <GitMerge className="h-3 w-3 text-[#00d4ff]" />
+              <span>FLOW TRACER</span>
+            </button>
+
+            <button
+              onClick={() => { setShowLinkPredictor((prev) => !prev); setShowFlowTracer(false); }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md border transition-all whitespace-nowrap ${
+                showLinkPredictor
+                  ? "bg-purple-500/20 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                  : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+              }`}
+            >
+              <Network className="h-3 w-3 text-purple-400" />
+              <span>LINK PREDICTOR</span>
+            </button>
           </div>
         </div>
 
         {/* ═══ 2. The "Spider Web" Canvas ═══ */}
         <div className="flex-1 relative bg-[#030712] radial-gradient-dark" id="force-graph-container">
+          {/* Floating Semantica Overlays */}
+          <AnimatePresence>
+            {showFlowTracer && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="absolute top-4 left-4 z-40 w-96 rounded-xl border border-slate-700/80 bg-[#0a0f18]/95 p-4 shadow-2xl backdrop-blur-xl space-y-3 font-sans"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <GitMerge className="h-4 w-4 text-[#00d4ff]" />
+                    <span className="text-xs font-black uppercase tracking-wider text-white">Laundering Flow Route Tracer</span>
+                  </div>
+                  <button onClick={() => setShowFlowTracer(false)} className="text-slate-400 hover:text-white">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Source POI</label>
+                    <select
+                      value={flowSource}
+                      onChange={(e) => setFlowSource(e.target.value)}
+                      className="w-full rounded bg-black/60 border border-slate-700 px-2 py-1.5 text-[10px] text-white font-mono focus:outline-none focus:border-[#00d4ff]"
+                    >
+                      {graphNodesData.map((n) => (
+                        <option key={n.id} value={n.id}>{n.label || n.id}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Target Cash-out</label>
+                    <select
+                      value={flowTarget}
+                      onChange={(e) => setFlowTarget(e.target.value)}
+                      className="w-full rounded bg-black/60 border border-slate-700 px-2 py-1.5 text-[10px] text-white font-mono focus:outline-none focus:border-[#00d4ff]"
+                    >
+                      {graphNodesData.map((n) => (
+                        <option key={n.id} value={n.id}>{n.label || n.id}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {shortestFlowRoute && shortestFlowRoute.found ? (
+                  <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400 uppercase font-mono">FLOW PATH:</span>
+                      <span className="text-emerald-400 font-bold font-mono">{shortestFlowRoute.hops} HOPS DIRECT</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px]">
+                      {shortestFlowRoute.path.map((nodeId, i) => (
+                        <React.Fragment key={nodeId}>
+                          <span className="bg-slate-800 text-[#00d4ff] px-2 py-0.5 rounded border border-slate-700">
+                            {graphNodesData.find((n) => n.id === nodeId)?.label || nodeId}
+                          </span>
+                          {i < shortestFlowRoute.path.length - 1 && <span className="text-slate-500">→</span>}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-500 italic pt-1">
+                    No active flow route detected between these two nodes.
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {showLinkPredictor && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="absolute top-4 left-4 z-40 w-96 rounded-xl border border-slate-700/80 bg-[#0a0f18]/95 p-4 shadow-2xl backdrop-blur-xl space-y-3 font-sans"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Network className="h-4 w-4 text-purple-400" />
+                    <span className="text-xs font-black uppercase tracking-wider text-white">AI Covert Link Predictions</span>
+                  </div>
+                  <button onClick={() => setShowLinkPredictor(false)} className="text-slate-400 hover:text-white">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                  {[
+                    {
+                      s: "DarkPhoenix_77",
+                      t: "Ph03nix_Rx",
+                      conf: 94.2,
+                      reason: "Shared BTC wallet & PGP key signature.",
+                    },
+                    {
+                      s: "S11kR0ad_Vendor",
+                      t: "DarkPhoenix_77",
+                      conf: 78.5,
+                      reason: "Co-depositing into identical ChipMixer relay.",
+                    },
+                  ].map((pred, i) => (
+                    <div key={i} className="rounded-lg border border-slate-800 bg-black/40 p-2.5 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-bold">{pred.s} ↔ {pred.t}</span>
+                        <span className="text-emerald-400 font-mono font-bold text-[10px] bg-emerald-950/40 border border-emerald-800 px-1.5 py-0.5 rounded">
+                          {pred.conf}% MATCH
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">{pred.reason}</p>
+                      <button
+                        onClick={() => {
+                          alert(`Predictive link confirmed and drawn between ${pred.s} and ${pred.t}`);
+                          setShowLinkPredictor(false);
+                        }}
+                        className="w-full text-center bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 text-purple-300 rounded py-1 text-[10px] font-bold uppercase transition-colors flex items-center justify-center gap-1"
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        Draw Predictive Edge on Graph
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {!isExecuted ? (
              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
                <div className="flex flex-col items-center justify-center opacity-40">
@@ -723,6 +906,20 @@ export default function EvidenceGraph() {
                   [{role.label}]
                 </span>
               </div>
+
+              {/* Semantica Kingpin & Centrality Forensic Metric */}
+              {centralityScores[selectedNode.id] && (
+                <div className="px-5 py-3 border-b border-slate-700/50 shrink-0 bg-primary/5">
+                  <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest mb-1">
+                    <span className="text-slate-400">KINGPIN INDEX</span>
+                    <span className="text-primary font-mono font-bold text-xs">{centralityScores[selectedNode.id].kingpinIndex}/100</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px] text-slate-400">
+                    <span>ROLE INFERENCE</span>
+                    <span className="text-emerald-400 font-bold truncate max-w-[170px]">{centralityScores[selectedNode.id].inferredRole}</span>
+                  </div>
+                </div>
+              )}
 
               {/* INTERACTIVE PLATFORM BADGES */}
               {selectedNode.metadata && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { authenticate } from "@/lib/auth";
 import { Shield, Lock, User as UserIcon, Loader2, Cpu, Fingerprint, Activity } from "lucide-react";
