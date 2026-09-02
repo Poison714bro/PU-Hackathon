@@ -188,8 +188,27 @@ export default function TimelineReconstructor() {
     "Vendor DarkPhoenix_77 active on Dread. Bulk fentanyl HCL pressed pills dispatching today. Send 0.5 BTC to bc1q9hk7m3x2v8p5c6e4f0r1t7w9y2u3i4o5p6a7s8d9f0g1h2j3k4l5x4k2. Verify via PGP 1109E77A8C3D5F6B7E2A9D014C8F3B62F9B24A32. Telegram contact @DarkPhoenix_Direct. Mirror link http://exampldarknetv3abc56def78ghij90klmn12opqrst34uvwx56yz78.onion"
   );
   const [extractedIocs, setExtractedIocs] = useState<any>(null);
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestSuccess, setIngestSuccess] = useState(false);
 
-  const handleRunExtraction = () => {
+  const handleRunExtraction = async () => {
+    try {
+      const res = await api.intelligence.extractTriplets(rawTextInput);
+      if (res.ok && res.data) {
+        setExtractedIocs({
+          wallets: res.data.iocs?.wallets || [],
+          pgpKeys: res.data.iocs?.pgpKeys || [],
+          telegrams: res.data.iocs?.telegramHandles || [],
+          onions: res.data.iocs?.onionLinks || [],
+          contraband: res.data.iocs?.contraband || [],
+          triplets: res.data.triplets || []
+        });
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+
     const btcMatches = rawTextInput.match(/\b(bc1[a-zA-HJ-NP-Z0-9]{25,62}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b/gi) || [];
     const pgpMatches = rawTextInput.match(/\b[0-9A-Fa-f]{40}\b/gi) || [];
     const telegramMatches = rawTextInput.match(/@([a-zA-Z0-9_]{5,32})\b/gi) || [];
@@ -213,6 +232,21 @@ export default function TimelineReconstructor() {
         { subject: "DarkPhoenix_77", predicate: "OPERATES_ON_CHANNEL", object: telegramMatches[0] || "@DarkPhoenix_Direct" },
       ],
     });
+  };
+
+  const handleIngestToGraph = async () => {
+    setIsIngesting(true);
+    try {
+      const res = await api.ingest.pipeline(rawTextInput, "Darknet Studio Ingestion");
+      if (res.ok) {
+        setIngestSuccess(true);
+        setTimeout(() => setIngestSuccess(false), 3000);
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setIsIngesting(false);
+    }
   };
 
   useEffect(() => {
@@ -342,13 +376,27 @@ export default function TimelineReconstructor() {
                 onChange={(e) => setRawTextInput(e.target.value)}
                 className="w-full rounded-lg border border-slate-700 bg-black/60 p-4 text-xs text-white focus:border-[#00d4ff] focus:outline-none font-mono leading-relaxed"
               />
-              <button
-                onClick={handleRunExtraction}
-                className="w-full rounded-lg bg-[#00d4ff] hover:bg-cyan-400 text-black py-2.5 text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.3)]"
-              >
-                <Zap className="h-4 w-4 fill-black" />
-                Extract Forensic Indicators & Triplets
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRunExtraction}
+                  className="flex-1 rounded-lg bg-[#00d4ff] hover:bg-cyan-400 text-black py-2.5 text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,212,255,0.3)]"
+                >
+                  <Zap className="h-4 w-4 fill-black" />
+                  Extract Indicators & Triplets
+                </button>
+                <button
+                  onClick={handleIngestToGraph}
+                  disabled={isIngesting}
+                  className={`px-4 rounded-lg border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                    ingestSuccess
+                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                      : "border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
+                  }`}
+                >
+                  <Sparkles className={`h-3.5 w-3.5 ${isIngesting ? 'animate-spin' : ''}`} />
+                  {ingestSuccess ? "Ingested!" : isIngesting ? "Ingesting..." : "Ingest to Graph"}
+                </button>
+              </div>
             </div>
 
             {/* Output Panel */}

@@ -212,10 +212,11 @@ export default function EntityResolution() {
     setIsMerging(true);
 
     try {
-      const res = await api.intelligence.mergeAliases({
-        primaryEntityId: target.aliasA.name,
-        duplicateEntityId: target.aliasB.name,
-      });
+      const res = await api.intelligence.mergeAliases(
+        target.aliasA.name,
+        target.aliasB.name,
+        "Analyst verified match in Entity Resolution queue"
+      );
 
       if (res.ok) {
         addToast(`Unified Master Profile created: ${target.aliasA.name}`, "success");

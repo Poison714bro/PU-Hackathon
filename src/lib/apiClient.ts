@@ -442,6 +442,33 @@ export const api = {
       ),
 
     aliasMatches: () => request<AliasMatch[]>("GET", "/intelligence/alias-matches"),
+
+    mergeAliases: (primaryId: string, secondaryId: string, reason?: string) =>
+      request<any>("POST", "/intelligence/merge-aliases", { primaryId, secondaryId, reason }),
+
+    conflicts: {
+      list: () => request<any[]>("GET", "/intelligence/conflicts"),
+      resolve: (conflictId: string, strategy?: string, overrideValue?: string) =>
+        request<any>("POST", "/intelligence/conflicts", { conflictId, strategy, overrideValue }),
+    },
+
+    audit: {
+      getLedger: () => request<any>("GET", "/intelligence/audit"),
+      recordDecision: (body: {
+        decisionType: string;
+        targetId: string;
+        targetAlias?: string;
+        action: string;
+        officer: string;
+        justification: string;
+      }) => request<any>("POST", "/intelligence/audit", body),
+    },
+
+    dossierExport: (targetId: string) =>
+      request<any>("POST", "/intelligence/dossier", { targetId }),
+
+    extractTriplets: (text: string) =>
+      request<any>("POST", "/intelligence/triplets", { text }),
   },
 
   // ── Map ──
@@ -464,6 +491,15 @@ export const api = {
         "GET",
         entityId ? `/network/${encodeURIComponent(entityId)}` : "/network/default"
       ),
+
+    analytics: (source?: string, target?: string) =>
+      request<any>("GET", "/graph/analytics", undefined, { source, target }),
+  },
+
+  // ── Ingest ──
+  ingest: {
+    pipeline: (text: string, source?: string) =>
+      request<any>("POST", "/ingest/pipeline", { text, source }),
   },
 
   // ── Tracker ──

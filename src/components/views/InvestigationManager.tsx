@@ -229,6 +229,48 @@ export default function InvestigationManager() {
     }
   ]);
 
+  useEffect(() => {
+    let cancelled = false;
+    api.intelligence.conflicts.list().then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.data && res.data.length > 0) {
+        setConflictsList(res.data.map((c: any) => ({
+          id: c.id,
+          entity: `${c.targetLabel} (${c.entityId})`,
+          property: c.field,
+          severity: c.severity,
+          claims: (c.sources || []).map((s: any) => ({
+            source: s.source,
+            type: "law_enforcement_wiretap",
+            credibility: s.credibility,
+            value: s.claim,
+            time: s.timestamp ? s.timestamp.substring(0, 16).replace("T", " ") : "2026-09-01 10:00"
+          })),
+          status: c.status || "DISPUTED",
+          resolvedValue: null as string | null
+        })));
+      }
+    });
+
+    api.intelligence.audit.getLedger().then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.data && res.data.blocks && res.data.blocks.length > 0) {
+        setAuditBlocks(res.data.blocks.map((b: any) => ({
+          id: `dec_${b.blockIndex}`,
+          category: b.decisionType,
+          targets: [b.targetId],
+          officer: b.officer,
+          clearance: 3,
+          justification: b.justification,
+          hash: b.blockHash,
+          timestamp: b.timestamp
+        })));
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
   const addToast = (message: string) => {
     const id = toastId + 1;
     setToastId(id);
@@ -238,7 +280,24 @@ export default function InvestigationManager() {
     }, 3000);
   };
 
-  const handleResolveConflict = (conflictId: string, strategy: "credibility" | "recent") => {
+  const handleResolveConflict = async (conflictId: string, strategy: "credibility" | "recent") => {
+    try {
+      const strat = strategy === "credibility" ? "credibility_weighted" : "most_recent";
+      const res = await api.intelligence.conflicts.resolve(conflictId, strat);
+      if (res.ok && res.data) {
+        addToast(`Conflict resolved via ${res.data.strategy}: ${res.data.resolvedValue}`);
+        setConflictsList((prev) => prev.map((c) => {
+          if (c.id === conflictId) {
+            return { ...c, status: "RESOLVED", resolvedValue: res.data.resolvedValue };
+          }
+          return c;
+        }));
+        return;
+      }
+    } catch {
+      // Handled in fallback
+    }
+
     setConflictsList((prev) => prev.map((c) => {
       if (c.id === conflictId) {
         let val = c.claims[0].value;
