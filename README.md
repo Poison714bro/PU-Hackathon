@@ -392,7 +392,7 @@ npm run build
 ## 10. Contributors & License
 
 - **Developed for**: Punjab Police Hackathon / National Police Hackathon 2026
-- **Architecture & Lead Development**: Antigravity AI Engineering Team
+- **Architecture & Lead Development**: Code Blooded
 - **Knowledge Graph Framework**: Powered by [Semantica AGI](https://github.com/semantica-agi/semantica)
 - **License**: MIT License — Open for Law Enforcement & Academic Research
 
