@@ -29,3 +29,11 @@ next-env.d.ts
 
 # agents & secrets
 .agents/
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.egg-info/
+dist/

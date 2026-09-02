@@ -84,17 +84,21 @@ describe("useMapData Hook", () => {
       expect(result.current.isClient).toBe(true);
     });
 
-    act(() => {
+    await act(async () => {
       result.current.toggleCategory("Opioids/Fentanyl");
     });
 
-    expect(result.current.activeCategories.has("Opioids/Fentanyl")).toBe(false);
+    await waitFor(() => {
+      expect(result.current.activeCategories.has("Opioids/Fentanyl")).toBe(false);
+    });
 
-    act(() => {
+    await act(async () => {
       result.current.toggleCategory("Stimulants");
     });
 
-    expect(result.current.activeCategories.has("Stimulants")).toBe(true);
+    await waitFor(() => {
+      expect(result.current.activeCategories.has("Stimulants")).toBe(true);
+    });
   });
 
   it("computes slider value from date range", async () => {

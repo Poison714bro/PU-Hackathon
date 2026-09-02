@@ -36,6 +36,7 @@ export function useMapData(
   // Sync external categories changes only when serialized contents change
   useEffect(() => {
     setActiveCategories(new Set(initialCategories || []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategoriesKey]);
 
   const riskMin = riskRange?.[0] ?? 0;
