@@ -31,19 +31,18 @@ export function useMapData(
   const [mapPinsData, setMapPinsData] = useState<MapPin[]>([]);
   const [isClient, setIsClient] = useState(false);
 
-  const categoriesKey = useMemo(
-    () => Array.from(initialCategories || []).sort().join(','),
-    [initialCategories]
-  );
+  const initialCategoriesKey = Array.from(initialCategories || []).sort().join(',');
 
   // Sync external categories changes only when serialized contents change
   useEffect(() => {
     setActiveCategories(new Set(initialCategories || []));
-  }, [categoriesKey]);
+  }, [initialCategoriesKey]);
 
   const riskMin = riskRange?.[0] ?? 0;
   const riskMax = riskRange?.[1] ?? 100;
   const categoriesParam = useMemo(() => Array.from(activeCategories).sort().join(','), [activeCategories]);
+  const startDate = dateRange[0];
+  const endDate = dateRange[1];
 
   // Server-side filtering: Fetch from API whenever dateRange or categories change
   useEffect(() => {
@@ -51,8 +50,8 @@ export function useMapData(
     setIsClient(true);
     
     api.map.pins({
-      startDate: dateRange[0],
-      endDate: dateRange[1],
+      startDate,
+      endDate,
       drugCategory: categoriesParam,
       riskMin,
       riskMax
@@ -74,7 +73,7 @@ export function useMapData(
     return () => {
       isCancelled = true;
     };
-  }, [dateRange[0], dateRange[1], categoriesParam, riskMin, riskMax]);
+  }, [startDate, endDate, categoriesParam, riskMin, riskMax]);
 
   // Keep filteredPins as an alias for mapPinsData to avoid refactoring MapView deeply
   const filteredPins = mapPinsData;

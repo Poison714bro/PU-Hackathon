@@ -11,9 +11,10 @@ export async function GET() {
     const pythonScript = path.join(process.cwd(), 'analysis', 'semantica_graph_service.py');
     
     // Resolve python executable
+    const py313 = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python313', 'python.exe');
     const winPython = path.join(process.cwd(), 'darknet-intel-mcp', 'venv', 'Scripts', 'python.exe');
     const posixPython = path.join(process.cwd(), 'darknet-intel-mcp', 'venv', 'bin', 'python');
-    const pythonBin = fs.existsSync(winPython) ? winPython : fs.existsSync(posixPython) ? posixPython : 'python';
+    const pythonBin = fs.existsSync(py313) ? py313 : fs.existsSync(winPython) ? winPython : fs.existsSync(posixPython) ? posixPython : 'python';
 
     const { stdout } = await execFileAsync(pythonBin, [pythonScript], {
       timeout: 10000,

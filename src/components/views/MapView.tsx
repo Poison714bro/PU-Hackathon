@@ -218,7 +218,7 @@ export default function MapView() {
     } else {
       setDateRange((prev) => [prev[0], allDateRange[Math.max(idx, sliderValue[0])]]);
     }
-  }, [allDateRange, sliderValue]);
+  }, [allDateRange, sliderValue, setDateRange]);
 
   const handleFlyTo = useCallback((pin: MapPin) => {
     setViewState((prev) => ({
@@ -231,6 +231,15 @@ export default function MapView() {
     }));
   }, []);
 
+  const handlePinClick = useCallback((pinId: string) => {
+    setSelectedPin(pinId);
+    setSelectedCluster(null);
+    const pin = mapPinsData.find((p) => p.id === pinId);
+    if (pin) {
+      selectEntity(pinId, "pin", pin.linkedNodeIds);
+    }
+  }, [selectEntity, mapPinsData]);
+
   const handleSearch = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -240,16 +249,7 @@ export default function MapView() {
         handlePinClick(match.id);
       }
     }
-  }, [searchQuery, mapPinsData, handleFlyTo]);
-
-  const handlePinClick = useCallback((pinId: string) => {
-    setSelectedPin(pinId);
-    setSelectedCluster(null);
-    const pin = mapPinsData.find((p) => p.id === pinId);
-    if (pin) {
-      selectEntity(pinId, "pin", pin.linkedNodeIds);
-    }
-  }, [selectEntity, mapPinsData]);
+  }, [searchQuery, mapPinsData, handleFlyTo, handlePinClick]);
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedPin(null);
@@ -270,7 +270,7 @@ export default function MapView() {
       }
       setDateRange([globalMinDate, allDateRange[currentIdx]]);
     }, 400);
-  }, [allDateRange, globalMinDate, globalMaxDate]);
+  }, [allDateRange, globalMinDate, globalMaxDate, setDateRange]);
 
   const stopPlayback = useCallback(() => {
     if (playRef.current) clearInterval(playRef.current);

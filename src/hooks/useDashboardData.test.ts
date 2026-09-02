@@ -18,6 +18,11 @@ vi.mock('@/lib/apiClient', () => ({
   }
 }));
 
+vi.mock('@/lib/publicApis', () => ({
+  getRecentMalwareUrls: vi.fn().mockResolvedValue([]),
+  getDnsRecords: vi.fn().mockResolvedValue(null)
+}));
+
 describe('useDashboardData', () => {
   beforeEach(() => {
     vi.clearAllMocks();

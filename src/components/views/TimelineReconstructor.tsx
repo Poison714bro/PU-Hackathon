@@ -29,6 +29,7 @@ import {
   ReferenceDot,
   ReferenceLine
 } from "recharts";
+import { api } from "@/lib/apiClient";
 
 // Mock Data
 const graphData = [
@@ -191,7 +192,7 @@ export default function TimelineReconstructor() {
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestSuccess, setIngestSuccess] = useState(false);
 
-  const handleRunExtraction = async () => {
+  const handleRunExtraction = useCallback(async () => {
     try {
       const res = await api.intelligence.extractTriplets(rawTextInput);
       if (res.ok && res.data) {
@@ -232,7 +233,7 @@ export default function TimelineReconstructor() {
         { subject: "DarkPhoenix_77", predicate: "OPERATES_ON_CHANNEL", object: telegramMatches[0] || "@DarkPhoenix_Direct" },
       ],
     });
-  };
+  }, [rawTextInput]);
 
   const handleIngestToGraph = async () => {
     setIsIngesting(true);
@@ -251,7 +252,7 @@ export default function TimelineReconstructor() {
 
   useEffect(() => {
     handleRunExtraction();
-  }, []);
+  }, [handleRunExtraction]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

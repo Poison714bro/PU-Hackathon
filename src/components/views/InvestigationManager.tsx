@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -27,6 +27,7 @@ import {
   Copy,
   Sparkles,
 } from "lucide-react";
+import { api } from "@/lib/apiClient";
 import { kanbanData, type KanbanColumn, type InvestigationCard } from "@/lib/mockData";
 import { motion, AnimatePresence } from "framer-motion";
 import { useKanbanBoard } from "@/hooks/useKanbanBoard";
@@ -561,7 +562,7 @@ export default function InvestigationManager() {
                         <span className="font-mono text-[#00d4ff]">Credibility: {claim.credibility * 100}%</span>
                       </div>
                       <div className="text-xs font-bold text-white font-serif">
-                        "{claim.value}"
+                        &quot;{claim.value}&quot;
                       </div>
                       <div className="text-[10px] font-mono text-slate-500">
                         Observed: {claim.time}
